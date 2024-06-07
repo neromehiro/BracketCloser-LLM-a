@@ -39,11 +39,18 @@ def define_lstm_model(seq_length, output_dim, learning_rate, embedding_dim=64, l
     return model
 
 
-def define_bert_model(seq_length, output_dim, learning_rate, embedding_dim=64, num_heads=4, ffn_units=128, num_layers=2, dropout_rate=0.1):
-    inputs = layers.Input(shape=(seq_length,))
+def define_bert_model(seq_length, output_dim, learning_rate, embedding_dim=64, num_heads=4, ffn_units=128, num_layers=2, dropout_rate=0.1, use_attention_mask=False):
+    inputs = layers.Input(shape=(seq_length,), name='input_1')
+    if use_attention_mask:
+        attention_mask = layers.Input(shape=(seq_length,), dtype=tf.float32, name='attention_mask')
+        input_list = [inputs, attention_mask]
+    else:
+        attention_mask = None
+        input_list = inputs
+
     x = layers.Embedding(input_dim=output_dim, output_dim=embedding_dim, mask_zero=True)(inputs)
     for _ in range(num_layers):
-        attention_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embedding_dim)(x, x)
+        attention_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embedding_dim)(x, x, attention_mask=attention_mask)
         attention_output = layers.Dropout(dropout_rate)(attention_output)
         attention_output = layers.LayerNormalization(epsilon=1e-6)(attention_output + x)
         ffn = layers.Dense(ffn_units, activation='relu')(attention_output)
@@ -53,7 +60,7 @@ def define_bert_model(seq_length, output_dim, learning_rate, embedding_dim=64, n
     x = layers.GlobalAveragePooling1D()(x)  # 出力の形状を修正
     outputs = layers.Dense(output_dim, activation="softmax")(x)
 
-    model = models.Model(inputs, outputs)
+    model = models.Model(inputs=input_list, outputs=outputs)
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), 
         loss="sparse_categorical_crossentropy", 
@@ -61,6 +68,7 @@ def define_bert_model(seq_length, output_dim, learning_rate, embedding_dim=64, n
         weighted_metrics=["accuracy"]
     )
     return model
+
 
 def define_transformer_model(seq_length, output_dim, learning_rate, embedding_dim=64, num_heads=4, ffn_units=128, dropout_rate=0.1):
     inputs = layers.Input(shape=(seq_length,), name='input_1')

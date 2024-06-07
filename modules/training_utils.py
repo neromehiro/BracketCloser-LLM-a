@@ -99,6 +99,7 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
 
         sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
 
+        # 'transformer', 'gpt', 'bert' などのアーキテクチャに対してのみ attention_mask を作成
         if 'transformer' in architecture or 'gpt' in architecture or 'bert' in architecture:
             attention_mask = (input_sequences != 0).astype(np.float32)
 
@@ -123,6 +124,7 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
                  sample_weights[-num_validation_samples:])
             ).batch(batch_size)
         else:
+            # attention_mask を使用しないアーキテクチャの場合
             train_dataset = tf.data.Dataset.from_tensor_slices(
                 (input_sequences[:-num_validation_samples],
                  target_tokens[:-num_validation_samples],
@@ -137,6 +139,7 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
 
         train_dataset = train_dataset.shuffle(buffer_size=1024)
 
+        # データのバッチ形状を確認
         for data, labels, weights in train_dataset.take(1):
             if isinstance(data, dict):
                 for key, value in data.items():
