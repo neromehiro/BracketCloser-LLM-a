@@ -1,25 +1,24 @@
-import optuna
 import os
 import json
+import random
 import numpy as np
 import tensorflow as tf
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from tqdm import tqdm
+import glob
+import wandb
+from wandb.integration.keras import WandbCallback
+import optuna
+from optuna.pruners import HyperbandPruner
+from optuna.samplers import TPESampler
+from dotenv import load_dotenv
 from modules.setup import setup, parse_time_limit
 from modules.objective import objective
 from modules.utils import create_save_folder
 from modules.data_utils import load_dataset, prepare_sequences, tokens
 from modules.training_utils import train_model, plot_training_history, save_metadata, TrainingHistory
-import glob
-import wandb
-from wandb.integration.keras import WandbCallback
-from optuna.pruners import HyperbandPruner
-from optuna.samplers import TPESampler
-from dotenv import load_dotenv
+import optuna_data_generator
 
-ENCODE_DIR_PATH = "./components/dataset/preprocessed/"
-MODEL_SAVE_BASE_PATH = "./models/"
-STORAGE_BASE_PATH = "./optuna_studies/"
 BEST_LOSS = float('inf')
 
 # グローバル変数BEST_LOSSを設定
@@ -31,6 +30,8 @@ load_dotenv()
 os.environ["WANDB_CONSOLE"] = "off"
 os.environ["WANDB_SILENT"] = "true"
 os.environ["WANDB_MODE"] = "disabled"
+
+STORAGE_BASE_PATH = "./optuna_studies/"
 
 def clean_up_files(save_path, keep_files=['best_model.h5', 'training_history.png', 'optuna_study.db']):
     files = glob.glob(os.path.join(save_path, '*'))
@@ -80,8 +81,17 @@ def save_best_model_info(model_path, metadata, save_path):
     except IOError as e:
         print(f"Failed to save best model information: {e}")
 
+def generate_datasets(base_dir, num_samples):
+    dataset_sizes = [100, 300, 500, 800, 1000, 3000, 5000, 10000]
+    if num_samples not in dataset_sizes:
+        raise ValueError(f"Invalid number of samples. Choose from {dataset_sizes}")
+    
+    num_datasets = 1  # You can modify this if you need multiple datasets
+    optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
 
 def main():
+    global STORAGE_BASE_PATH, ENCODE_DIR_PATH, MODEL_SAVE_BASE_PATH
+
     wandb_api_key = os.getenv('WANDB_API_KEY')
     project_name = os.getenv('WANDB_PROJECT_NAME')
     run_name = os.getenv('WANDB_RUN_NAME')
@@ -113,6 +123,10 @@ def main():
             training_history = TrainingHistory(model_path=os.path.join(save_path, 'best_model.h5'), model_architecture_func=model_architecture_func)
             training_history.load_best_loss(metadata_path)
 
+            ENCODE_DIR_PATH = os.path.join(save_path, "dataset/preprocessed/")
+            MODEL_SAVE_BASE_PATH = save_path
+            STORAGE_BASE_PATH = save_path
+
     if option == "2":
         architecture_name = input("Enter the model architecture (gru, transformer, lstm, bert, gpt): ").strip()
         model_architecture_func, architecture = setup(architecture_name)
@@ -120,6 +134,13 @@ def main():
         study_name = os.path.basename(save_path)
         storage_name = f"sqlite:///{save_path}/optuna_study.db"
         training_history = TrainingHistory(model_path=os.path.join(save_path, 'best_model.h5'), model_architecture_func=model_architecture_func)
+        
+        ENCODE_DIR_PATH = os.path.join(save_path, "dataset/preprocessed/")
+        MODEL_SAVE_BASE_PATH = save_path
+        STORAGE_BASE_PATH = save_path
+        
+        num_samples = int(input("Enter the number of samples for the dataset (100, 300, 500, 800, 1000, 3000, 5000, 10000): ").strip())
+        generate_datasets(save_path, num_samples)
 
     time_limit_str = input("Enter the training time limit (e.g., '3min', '1hour', '5hour'): ").strip()
     time_limit = parse_time_limit(time_limit_str)
@@ -227,7 +248,6 @@ def main():
     print(f"Model parameters: {model_params}")
 
     wandb.finish()
-
 
 if __name__ == "__main__":
     main()
