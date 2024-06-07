@@ -57,8 +57,6 @@ def load_training_data(encode_dir_path, seq_length, num_files=10):
 
 def objective(trial, architecture, best_loss, encode_dir_path, create_save_folder_func):
     model_architecture_func = MODEL_ARCHITECTURES[architecture]
-    
-    # エポック数を一律で5に固定
     epochs = 5
     
     batch_size = trial.suggest_int("batch_size", 64, 512)
@@ -69,40 +67,40 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     model = None
 
     if architecture == "gru":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)  # 範囲を狭める
-        gru_units = trial.suggest_int("gru_units", 64, 128)  # 範囲を狭める
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)  # 範囲を狭める
-        recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)  # 範囲を狭める
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
+        gru_units = trial.suggest_int("gru_units", 64, 128)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
+        recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, gru_units, dropout_rate, recurrent_dropout_rate)
     
     elif architecture == "transformer":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)  # 範囲を狭める
-        num_heads = trial.suggest_int("num_heads", 2, 4)  # 範囲を狭める
-        ffn_units = trial.suggest_int("ffn_units", 128, 256)  # 範囲を狭める
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)  # 範囲を狭める
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
+        num_heads = trial.suggest_int("num_heads", 2, 4)
+        ffn_units = trial.suggest_int("ffn_units", 128, 256)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate)
     
     elif architecture == "lstm":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)  # 範囲を狭める
-        lstm_units = trial.suggest_int("lstm_units", 64, 128)  # 範囲を狭める
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)  # 範囲を狭める
-        recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)  # 範囲を狭める
-        num_layers = trial.suggest_int("num_layers", 1, 3)  # 上限を減らす
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
+        lstm_units = trial.suggest_int("lstm_units", 64, 128)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
+        recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)
+        num_layers = trial.suggest_int("num_layers", 1, 3)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, lstm_units, dropout_rate, recurrent_dropout_rate, num_layers)
     
     elif architecture == "bert":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)  # 範囲を狭める
-        num_heads = trial.suggest_int("num_heads", 2, 4)  # 範囲を狭める
-        ffn_units = trial.suggest_int("ffn_units", 128, 256)  # 範囲を狭める
-        num_layers = trial.suggest_int("num_layers", 1, 3)  # 上限を減らす
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)  # 範囲を狭める
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
+        num_heads = trial.suggest_int("num_heads", 2, 4)
+        ffn_units = trial.suggest_int("ffn_units", 128, 256)
+        num_layers = trial.suggest_int("num_layers", 1, 3)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, num_layers, dropout_rate)
     
     elif architecture == "gpt":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)  # 範囲を狭める
-        num_heads = trial.suggest_int("num_heads", 2, 4)  # 範囲を狭める
-        ffn_units = trial.suggest_int("ffn_units", 128, 256)  # 範囲を狭める
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)  # 範囲を狭める
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
+        num_heads = trial.suggest_int("num_heads", 2, 4)
+        ffn_units = trial.suggest_int("ffn_units", 128, 256)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate)
     
     vocab_set = set(tokens)
@@ -158,12 +156,11 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
             loss = history.history['loss'][-1]
             if loss < best_loss:
                 best_loss = loss
-                best_model_path = os.path.join(save_path, "..", "best_model.h5")  # 一つ上の階層に保存
+                best_model_path = os.path.join(save_path, "..", "best_model.h5")
                 os.makedirs(os.path.dirname(best_model_path), exist_ok=True)
                 model.save(best_model_path)
                 print(f"New best model saved with loss: {best_loss}")
 
-                
                 metadata = {
                     "epoch": len(history.history['loss']),
                     "logs": {
@@ -183,14 +180,24 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
                     "gru_units": gru_units if architecture == 'gru' else None,
                     "dropout_rate": dropout_rate,
                     "recurrent_dropout_rate": recurrent_dropout_rate if architecture == 'gru' else None,
-                    "num_layers": num_layers if architecture in ['lstm', 'bert'] else None
+                    "num_layers": num_layers if architecture in ['lstm', 'bert'] else None,
+                    "model_path": best_model_path
                 }
-                
+
                 metadata_path = os.path.join(save_path, f"metadata_{trial.number}_{timestamp}.json")
                 with open(metadata_path, 'w') as f:
                     json.dump(metadata, f, indent=4)
+                
+                # Optunaのユーザー属性として保存
+                trial.set_user_attr('metadata', metadata)
                 
             return loss
     except Exception as e:
         print(f"Training failed with exception: {e}")
         return float('inf')
+    
+    
+    
+    
+    
+    
