@@ -1,0 +1,6 @@
+*.h5
+optuna_studies/
+wandb/
+models/
+__pycache__.DS_Store
+

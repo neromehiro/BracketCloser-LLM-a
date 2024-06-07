@@ -1,0 +1,35 @@
+
+pip installした後、Dockerイメージを更新(コミット)
+1
+docker commit my_temp_container deep-learning-coding:pytorch1.12.0_tensorflow2.9.1_optuna
+
+2
+docker stop my_temp_container
+docker rm my_temp_container
+
+3
+export PROJECT_DIR=$(pwd)
+docker run -it \
+  -v "${PROJECT_DIR}:/app/project" \
+  --workdir /app/project \
+  --tmpfs /tmp:rw,size=10g \
+  deep-learning-coding:pytorch1.12.0_tensorflow2.9.1_optuna \
+  bash
+
+
+  ## コードを戻したいとき
+# ローカルのリポジトリを特定のコミットに戻す
+git reset --hard 8ebf79292caafaffef65e72651489bdf6c0a3279
+git push origin main --force
+
+git checkout main
+
+
+# リポジトリ内で大きなファイルを検索し、サイズ順に上位10件を表示
+find . -type f -exec du -h {} + | sort -rh | head -n 10
+
+
+
+git add .
+git commit -m "tests"
+git push origin main
