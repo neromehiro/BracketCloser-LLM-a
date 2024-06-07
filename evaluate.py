@@ -48,10 +48,8 @@ def get_model_list_sorted_by_date(models_dir='./models'):
             print(f"Error parsing date from {model_name}: {e}")
             return datetime.min
 
-
     model_list.sort(key=extract_date, reverse=True)
     return model_list[:9]  # 最新の9個のモデルのみを表示
-
 
 def select_model(models_dir='./models'):
     model_list = get_model_list_sorted_by_date(models_dir)
@@ -71,14 +69,11 @@ model_metadata_path = os.path.join(model_save_path, "training_info.json")
 test_data_path = os.path.join(dirs["original"], "test_bracket_dataset.json")
 
 # 評価結果の保存パス
-evaluation_result_path = "evaluation_result.txt"
-
+evaluation_result_path = os.path.join(model_save_path, "evaluation_result.txt")
 # トークンとIDを対応付ける辞書
 tokens = ["(", ")", "【", "】", "{", "}", "input", ",output", ","]
 token2id = {token: i + 1 for i, token in enumerate(tokens)}
 id2token = {i + 1: token for i, token in enumerate(tokens)}
-
-
 
 # モデルメタデータをロードしてモデルの種類を自動設定
 def get_model_type(metadata_path: str) -> str:
@@ -130,11 +125,9 @@ def tokenize_string(string: str) -> List[str]:
             tokens.append(char)
         else:
             current_token += char
-    if (current_token):
+    if current_token:
         tokens.append(current_token)
     return tokens
-
-
 
 def preprocess_input(input_seq: str) -> List[int]:
     tokens = tokenize_string(input_seq)
@@ -157,7 +150,7 @@ def split_input_output(data):
             logging.error(f"Invalid data format: {item}")
     return input_output_pairs
 
-def evaluate_model(model, test_data, model_type):
+def evaluate_model(model, test_data, model_type, evaluation_result_path):
     if not test_data:
         raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
     
@@ -209,7 +202,7 @@ def evaluate_model(model, test_data, model_type):
             results.append(f"問題{idx + 1} 不正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
 
     accurate_percentage = correct_predictions / len(input_output_pairs) * 100
-
+    
     result_filename = f"evaluation_result_{accurate_percentage:.2f}%.txt"
     with open(evaluation_result_path, "w", encoding="utf-8") as f:
         f.write("\n".join(results))
@@ -219,6 +212,25 @@ def evaluate_model(model, test_data, model_type):
     with open(model_specific_result_path, "w", encoding="utf-8") as f:
         f.write("\n".join(results))
         f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
+
+    # training_info.jsonに評価結果を追加
+    training_info_path = os.path.join(model_save_path, "training_info.json")
+    if os.path.exists(training_info_path):
+        with open(training_info_path, "r") as info_file:
+            training_info = json.load(info_file)
+    else:
+        training_info = {}
+
+    if "evaluation_results" not in training_info:
+        training_info["evaluation_results"] = []
+
+    training_info["evaluation_results"].append({
+        "evaluation_number": len(training_info["evaluation_results"]) + 1,
+        "accuracy": accurate_percentage
+    })
+
+    with open(training_info_path, "w") as info_file:
+        json.dump(training_info, info_file, indent=4, ensure_ascii=False)
 
     return accurate_percentage
 
@@ -235,6 +247,6 @@ preprocess_and_save_dataset(test_dataset, "test_bracket_dataset.json", max_seq_l
 test_data = load_dataset(test_data_path)
 
 # モデルの評価
-accuracy = evaluate_model(model, test_data, model_type)
+accuracy = evaluate_model(model, test_data, model_type, evaluation_result_path)
 print(f"モデルの精度: {accuracy:.2f}%")
 print(f"評価結果は {evaluation_result_path} に保存されました。")

@@ -1,0 +1,16 @@
+{
+    "evaluation_results": [
+        {
+            "evaluation_number": 1,
+            "accuracy": 23.0
+        },
+        {
+            "evaluation_number": 2,
+            "accuracy": 23.0
+        },
+        {
+            "evaluation_number": 3,
+            "accuracy": 24.0
+        }
+    ]
+}
