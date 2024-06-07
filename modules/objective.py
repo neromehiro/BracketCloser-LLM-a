@@ -55,7 +55,7 @@ def load_training_data(encode_dir_path, seq_length, num_files=10):
 
     return all_input_sequences, all_target_tokens
 
-def objective(trial, architecture, best_loss, encode_dir_path, create_save_folder_func):
+def objective(trial, architecture, best_loss, encode_dir_path, create_save_folder_func, study, study_name):
     model_architecture_func = MODEL_ARCHITECTURES[architecture]
     epochs = 5
     
@@ -63,7 +63,6 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
     seq_length = 30
     
-    # モデル変数の初期化
     model = None
 
     if architecture == "gru":
@@ -134,7 +133,6 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     timestamp = (datetime.now() + timedelta(hours=9)).strftime("%Y%m%d%H%M%S")
     temp_model_path = os.path.join(save_path, f"temp_model_{trial.number}_{timestamp}.h5")
     os.makedirs(os.path.dirname(temp_model_path), exist_ok=True)
-
     try:
         history, dataset_size = train_model(
             model, 
@@ -156,10 +154,7 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
             loss = history.history['loss'][-1]
             if loss < best_loss:
                 best_loss = loss
-                best_model_path = os.path.join(save_path, "..", "best_model.h5")
-                os.makedirs(os.path.dirname(best_model_path), exist_ok=True)
-                model.save(best_model_path)
-                print(f"New best model saved with loss: {best_loss}")
+                print(f"New best model found with loss: {best_loss}")
 
                 metadata = {
                     "epoch": len(history.history['loss']),
@@ -181,23 +176,43 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
                     "dropout_rate": dropout_rate,
                     "recurrent_dropout_rate": recurrent_dropout_rate if architecture == 'gru' else None,
                     "num_layers": num_layers if architecture in ['lstm', 'bert'] else None,
-                    "model_path": best_model_path
+                    "model_path": temp_model_path
                 }
-
-                metadata_path = os.path.join(save_path, f"metadata_{trial.number}_{timestamp}.json")
-                with open(metadata_path, 'w') as f:
-                    json.dump(metadata, f, indent=4)
                 
                 # Optunaのユーザー属性として保存
                 trial.set_user_attr('metadata', metadata)
+                
+                # 最良試行情報を保存
+                save_best_trial_to_json(study, study_name)
                 
             return loss
     except Exception as e:
         print(f"Training failed with exception: {e}")
         return float('inf')
+
     
     
-    
-    
-    
+def save_best_trial_to_json(study, study_name):
+    best_trial = study.best_trial
+
+    # 保存先ディレクトリのパス
+    output_dir = os.path.join("optuna_studies", study_name)
+    output_path = os.path.join(output_dir, "best_para.json")
+
+    # ディレクトリが存在するか確認し、存在しない場合は作成
+    os.makedirs(output_dir, exist_ok=True)
+
+    # データの整形
+    best_trial_data = {
+        "value": best_trial.value,
+        "params": best_trial.params,
+        "user_attrs": best_trial.user_attrs  # ユーザー属性を含める
+    }
+
+    # JSON形式で保存
+    with open(output_path, 'w') as f:
+        json.dump(best_trial_data, f, indent=4)
+
+    print(f"Best trial data has been saved to {output_path}")
+
     

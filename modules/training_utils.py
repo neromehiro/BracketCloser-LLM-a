@@ -52,7 +52,7 @@ class TrainingHistory(tf.keras.callbacks.Callback):
             "time": (datetime.now() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S"),
             "model_architecture": self.model_architecture_func.__name__
         }
-        print(f"Saving metadata to {metadata_path} ")
+        print(f"Saving metadata to {metadata_path} with content: {metadata}")
         try:
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=4)
@@ -70,7 +70,6 @@ class TrainingHistory(tf.keras.callbacks.Callback):
             print(f"Loaded best loss: {self.best_loss} from {metadata_path}")
         except (IOError, KeyError) as e:
             print(f"Failed to load best loss from {metadata_path}: {e}")
-
 # TRAINING_MODES に含まれる変数を渡すための変更
 def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, **kwargs):
     # 他のパラメータを kwargs から取り出す
@@ -247,19 +246,6 @@ def train_model(model, input_sequences, target_tokens, epochs, batch_size, model
             new_best_loss = min(history.history['val_loss'])
 
             if new_best_loss < history_callback.best_loss:
-                final_model_path = os.path.join(os.path.dirname(os.path.dirname(model_path)), 'best_model.h5')
-                model.save(final_model_path, include_optimizer=False, save_format='h5')
-                best_params = {
-                    "batch_size": batch_size,
-                    "epochs": epochs,
-                    "learning_rate": learning_rate,
-                    "embedding_dim": embedding_dim,
-                    "gru_units": gru_units,
-                    "dropout_rate": dropout_rate,
-                    "recurrent_dropout_rate": recurrent_dropout_rate,
-                    "num_layers": 1  # Adjust as necessary for other architectures
-                }
-                save_final_model_metadata(final_model_path, history_callback.history, model_architecture_func, best_params)
                 print(f"New best model saved with loss: {new_best_loss}")
             else:
                 print(f"No improvement in best loss. Previous best loss: {history_callback.best_loss}, Current best loss: {new_best_loss}")
@@ -273,7 +259,6 @@ def train_model(model, input_sequences, target_tokens, epochs, batch_size, model
     else:
         print("No data for training.")
         return None, 0
-
 
 def save_final_model_metadata(model_path, history, model_architecture_func, best_params):
     metadata_path = model_path.replace('best_model.h5', 'best_model_metadata.json')
@@ -364,7 +349,6 @@ def save_metadata(model_path, metadata):
         
         
 
-
 def save_optuna_best_trial(study, output_path):
     best_trial = study.best_trial
     best_trial_logs = best_trial.user_attrs['metadata']
@@ -375,3 +359,8 @@ def save_optuna_best_trial(study, output_path):
         json.dump(best_trial_logs, f, indent=4)
 
     print(f"Best trial data has been saved to {output_path}")
+    
+    
+    
+    
+    

@@ -169,7 +169,12 @@ def main():
             sampler=TPESampler(),
             pruner=HyperbandPruner(min_resource=1, max_resource="auto")
         )
-        study.optimize(lambda trial: objective(trial, architecture, training_history.best_loss, ENCODE_DIR_PATH, lambda: create_save_folder(save_path, architecture)), timeout=time_limit.total_seconds(), n_jobs=n_jobs, callbacks=[callback])
+        study.optimize(
+            lambda trial: objective(trial, architecture, training_history.best_loss, ENCODE_DIR_PATH, lambda: create_save_folder(save_path, architecture), study, study_name),
+            timeout=time_limit.total_seconds(), 
+            n_jobs=n_jobs, 
+            callbacks=[callback]
+        )
     except Exception as e:
         print(f"An exception occurred during optimization: {e}")
     finally:
@@ -248,6 +253,7 @@ def main():
     print(f"Model parameters: {model_params}")
 
     wandb.finish()
+
 
 if __name__ == "__main__":
     main()
