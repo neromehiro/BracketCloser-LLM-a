@@ -11,6 +11,10 @@ def create_save_folder(model_save_base_path, architecture):
     # ベースフォルダ名
     base_folder_name = f"hyper_{architecture}"
     
+    # フォルダが存在しない場合に作成
+    if not os.path.exists(model_save_base_path):
+        os.makedirs(model_save_base_path)
+    
     # 既存のフォルダをチェックして連番を追加
     existing_folders = [f for f in os.listdir(model_save_base_path) if f.startswith(base_folder_name)]
     folder_index = len(existing_folders) + 1
