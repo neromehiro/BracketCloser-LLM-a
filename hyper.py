@@ -159,7 +159,6 @@ def main():
         wandb.log({'elapsed_time': elapsed_time, 'trial_number': trial.number, 'best_value': study.best_value})
 
     n_jobs = int(input("Enter the number of parallel jobs: ").strip())
-
     try:
         study = optuna.create_study(
             study_name=study_name, 
@@ -180,7 +179,14 @@ def main():
     finally:
         progress_bar.close()
 
-    best_params = study.best_params
+    save_best_trial_to_json(study, study_name)
+    output_dir = os.path.join("optuna_studies", study_name)
+    output_path = os.path.join(output_dir, "best_para.json")
+
+    with open(output_path, 'r') as f:
+        best_trial_data = json.load(f)
+
+    best_params = best_trial_data["params"]
     epochs = best_params["epochs"]
     batch_size = best_params["batch_size"]
     learning_rate = best_params["learning_rate"]

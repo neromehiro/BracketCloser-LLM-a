@@ -3,7 +3,7 @@ import os
 import json
 
 # データベースファイルのパス
-storage_path = "sqlite:///optuna_studies/hyper_gru_2/optuna_study.db"
+storage_path = "sqlite:///optuna_studies/hyper_transformer_2/optuna_study.db"
 
 # study_nameの抽出（パスのディレクトリ名を取得）
 study_name = os.path.basename(os.path.dirname(storage_path))

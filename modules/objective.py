@@ -73,10 +73,10 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, gru_units, dropout_rate, recurrent_dropout_rate)
     
     elif architecture == "transformer":
-        embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
-        num_heads = trial.suggest_int("num_heads", 2, 4)
-        ffn_units = trial.suggest_int("ffn_units", 128, 256)
-        dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
+        embedding_dim = trial.suggest_int("embedding_dim", 64, 256)
+        num_heads = trial.suggest_int("num_heads", 2, 8)
+        ffn_units = trial.suggest_int("ffn_units", 256, 512)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.05, 0.4)
         model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate)
     
     elif architecture == "lstm":
@@ -208,6 +208,10 @@ def save_best_trial_to_json(study, study_name):
         "params": best_trial.params,
         "user_attrs": best_trial.user_attrs  # ユーザー属性を含める
     }
+
+    # epochsがparamsに含まれていない場合に追加
+    if 'epochs' not in best_trial_data['params']:
+        best_trial_data['params']['epochs'] = 5  # 例: デフォルトのエポック数
 
     # JSON形式で保存
     with open(output_path, 'w') as f:
