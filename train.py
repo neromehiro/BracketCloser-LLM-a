@@ -1,15 +1,15 @@
-# train.py
 import os
 import sys
 import json
 import numpy as np
 from datetime import datetime
 import pytz
-from modules.data_utils import load_dataset, prepare_sequences, tokens, token2id
+from modules.data_utils import load_dataset, prepare_sequences, tokens
 from modules.model_utils import define_gru_model, define_transformer_model, define_lstm_model, define_bert_model, define_gpt_model
-from modules.training_utils import   train_model_single, plot_training_history, save_metadata
+from modules.training_utils import train_model_single, plot_training_history
 from modules.custom_layers import CustomMultiHeadAttention
-from tensorflow.keras.preprocessing.sequence import pad_sequences 
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import optuna_data_generator  # このインポートを追加
 
 # 日本時間のタイムゾーンを設定
 japan_timezone = pytz.timezone("Asia/Tokyo")
@@ -21,9 +21,7 @@ os.environ["WANDB_SILENT"] = "true"
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # データセットの保存先ディレクトリ
-encode_dir_path = "./components/dataset/preprocessed/"
-
-# モデル保存先ディレクトリ
+dataset_base_dir = "./datasets/"
 model_save_path = "./models/"
 
 MODEL_ARCHITECTURES = {
@@ -51,15 +49,14 @@ TRAINING_MODES = {
     "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1200, "learning_rate": 0.0005},
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
-    "optuna_best": {  #
-        "epochs": 10,
-        "batch_size": 79,
-        "learning_rate": 0.00027119925012602172,
-        "embedding_dim": 101,
-        "lstm_units": 119,
-        "dropout_rate": 0.2824268325293222,
-        "recurrent_dropout_rate": 0.13385891952498072,
-        "num_layers": 4
+    "op": {  #
+        "batch_size": 155,
+        "learning_rate": 0.0010534669873278322,
+        "embedding_dim": 203,
+        "num_heads": 7,
+        "ffn_units": 395,
+        "dropout_rate": 0.11988643409963941,
+        "epochs": 10
     }
 }
 
@@ -74,15 +71,13 @@ def prepare_sequences(encoded_tokens, seq_length):
     input_sequences = []
     target_tokens = []
 
-    # エンコードされたトークンを用いてシーケンスを作成
     for i in range(1, len(encoded_tokens)):
         input_seq = encoded_tokens[:i]
         target_seq = encoded_tokens[i]
-        input_sequences.append(input_seq)
-        target_tokens.append(target_seq)
+        input_sequences.append([int(token) for token in input_seq])
+        target_tokens.append(int(target_seq))
 
-    # シーケンスの長さを揃えるためにパディングを追加
-    input_sequences = pad_sequences(input_sequences, maxlen=seq_length, padding='post', value=0)  # パディング値を0に設定
+    input_sequences = pad_sequences(input_sequences, maxlen=seq_length, padding='post', value=0)
     target_tokens = pad_sequences([target_tokens], maxlen=len(input_sequences), padding='post', value=0)[0]
 
     return input_sequences, target_tokens
@@ -91,7 +86,6 @@ def load_dataset(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
-
 
 def select_mode_and_architecture():
     modes = list(TRAINING_MODES.keys())
@@ -151,10 +145,34 @@ def select_mode_and_architecture():
     architecture = SHORTCUTS[arch]
     return MODEL_ARCHITECTURES[architecture], TRAINING_MODES[mode], architecture
 
+def generate_datasets(base_dir, num_samples):
+    dataset_sizes = [100, 300, 500, 800, 1000, 3000, 5000, 10000]
+    if num_samples not in dataset_sizes:
+        raise ValueError(f"Invalid number of samples. Choose from {dataset_sizes}")
+    
+    num_datasets = 1  # 必要に応じて変更可能
+    # 既存の生成関数を呼び出し、正しいパスに生成されるようにする
+    optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
+    print(f"Generated datasets in {base_dir}")  # デバッグ用に追加
+
 
 
 def main():
     model_architecture_func, training_mode, architecture = select_mode_and_architecture()
+    num_samples = int(input("Enter the number of samples for the dataset (100, 300, 500, 800, 1000, 3000, 5000, 10000): ").strip())
+    
+    # 日本時間のタイムゾーンを設定
+    start_time = datetime.now(japan_timezone)
+    timestamp = start_time.strftime("%Y%m%d_%H%M%S")
+
+    # 一時フォルダ名作成
+    temp_save_dir = os.path.join(model_save_path, f"{timestamp}_{architecture}_temp")
+    os.makedirs(temp_save_dir, exist_ok=True)
+    
+    # データセットの生成
+    dataset_path = temp_save_dir
+    generate_datasets(dataset_path, num_samples)
+    
     max_seq_length = 30  # 最大シーケンス長を設定
 
     vocab_set = set(tokens)
@@ -162,16 +180,20 @@ def main():
     all_input_sequences = []
     all_target_tokens = []
 
-    num_datasets = 0
-
     num_files = training_mode.get("num_files", 10)  # デフォルト値を設定
 
-    for dirpath, dirnames, filenames in os.walk(encode_dir_path):
+    # データセットの読み込み位置を修正
+    preprocessed_path = os.path.join(dataset_path, "dataset", "preprocessed")
+    print(f"Preprocessed path: {preprocessed_path}")  # デバッグ用に追加
+
+    for dirpath, dirnames, filenames in os.walk(preprocessed_path):
+        print(f"Checking directory: {dirpath}")  # デバッグ用に追加
         for file in filenames[:num_files]:  # num_filesに基づいてファイル数を制限
             file_path = os.path.join(dirpath, file)
+            print(f"Processing file: {file_path}")  # デバッグ用に追加
             encoded_tokens_list = load_dataset(file_path)
+            print(f"Loaded data from {file_path}: {encoded_tokens_list[:2]}...")  # デバッグ用に追加（最初の2つのエントリのみ表示）
             for encoded_tokens in encoded_tokens_list:
-                num_datasets += 1
                 input_sequences, target_tokens = prepare_sequences(encoded_tokens, seq_length=max_seq_length)
                 all_input_sequences.extend(input_sequences)
                 all_target_tokens.extend(target_tokens)
@@ -189,14 +211,6 @@ def main():
 
     all_input_sequences = np.array(all_input_sequences)
     all_target_tokens = np.array(all_target_tokens)
-
-    # 日本時間のタイムゾーンを設定
-    start_time = datetime.now(japan_timezone)
-    timestamp = start_time.strftime("%Y%m%d_%H%M%S")
-
-    # 一時フォルダ名作成
-    temp_save_dir = os.path.join(model_save_path, f"{timestamp}_{architecture}_temp")
-    os.makedirs(temp_save_dir, exist_ok=True)
 
     training_info_path = os.path.join(temp_save_dir, "training_info.json")
 
@@ -253,7 +267,7 @@ def main():
         "batch_size": training_mode["batch_size"],
         "num_files": num_files,
         "learning_rate": learning_rate,
-        "dataset_size": dataset_size,
+        "dataset_size": num_samples,
         "model_size_MB": model_size,
         "model_params": model_params,
         "model_architecture": model_architecture_func.__name__,

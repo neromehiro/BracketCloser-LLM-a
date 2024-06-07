@@ -24,7 +24,8 @@ from modules.custom_layers import CustomMultiHeadAttention
 # model_save_path = 'optuna_studies/hyper_lstm_1/hyper_lstm_29/temp_model_28_20240607020449_epoch_5_pid_20909.h5' # 点数：70 61 64 65 74
 # model_save_path = 'models/20240607_023634_lstm_temp/best_model_epoch_4_pid_8566.h5' # 点数： 73 59 73 74 66 78
 # model_save_path = 'models/20240607_123655_lstm_temp/best_model.h5' # 点数： 77 71 75 71 67 68 70 70 73
-model_save_path = 'optuna_studies/hyper_transformer_2/hyper_transformer_151/temp_model_150_20240607163731.h5' # 点数：
+# model_save_path = 'optuna_studies/hyper_transformer_3/hyper_transformer_25/temp_model_24_20240607175121.h5' # 点数：61 55 52 48
+model_save_path = 'optuna_studies/hyper_transformer_3/hyper_transformer_25/temp_model_24_20240607175121.h5' # 点数：61 55 52 48
 # model_save_path = '' # 点数：
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))

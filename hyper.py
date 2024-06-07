@@ -89,6 +89,7 @@ def generate_datasets(base_dir, num_samples):
     num_datasets = 1  # You can modify this if you need multiple datasets
     optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
 
+
 def main():
     global STORAGE_BASE_PATH, ENCODE_DIR_PATH, MODEL_SAVE_BASE_PATH
 
