@@ -6,6 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping
 import numpy as np
 from datetime import datetime,timedelta  # datetimeモジュールをインポート
 import wandb
@@ -153,24 +154,22 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
         checkpoint_callback = ModelCheckpoint(filepath=model_path, save_weights_only=False, save_best_only=False, save_freq='epoch', verbose=1)
         history_callback = TrainingHistory(model_path, model_architecture_func)
 
-        try:
-            history = model.fit(
-                train_dataset,
-                epochs=epochs,
-                validation_data=validation_dataset,
-                callbacks=[time_callback, checkpoint_callback, history_callback]
-            )
-            model.save(model_path, include_optimizer=False, save_format='h5')
-            return history_callback.history, len(input_sequences)
-        except Exception as e:
-            print(f"Training failed with exception: {e}")
-            print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
-            print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
-            return None, 0
-    else:
-        print("No data for training.")
-        return None, 0
+    early_stopping_callback = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True, verbose=1)
 
+    try:
+        history = model.fit(
+            train_dataset,
+            epochs=epochs,
+            validation_data=validation_dataset,
+            callbacks=[time_callback, checkpoint_callback, history_callback, early_stopping_callback]
+        )
+        model.save(model_path, include_optimizer=False, save_format='h5')
+        return history_callback.history, len(input_sequences)
+    except Exception as e:
+        print(f"Training failed with exception: {e}")
+        print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
+        print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
+        return None, 0
 
 
 
