@@ -180,7 +180,6 @@ def main():
     finally:
         progress_bar.close()
 
-    save_best_trial_to_json(study, study_name)
     output_dir = os.path.join("optuna_studies", study_name)
     output_path = os.path.join(output_dir, "best_para.json")
 

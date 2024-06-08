@@ -178,7 +178,7 @@ preprocessed_sequence = [
 
 問題1 不正解
 
-入力した単語 Input: input:({【】【】()}【,output
+入力した単語 input:({【】【】()}【,output
 
 出力の単語: 】】
 
@@ -186,7 +186,7 @@ preprocessed_sequence = [
 
 問題2 正解
 
-入力した単語 Input: input:【【{}{}{}()】,output
+入力した単語 input:【【{}{}{}()】,output
 
 出力の単語: 】
 
@@ -194,7 +194,7 @@ preprocessed_sequence = [
 
 問題3 不正解
 
-入力した単語 Input: input:{}【(【(),output
+入力した単語 input:{}【(【(),output
 
 出力の単語: 】】)
 
@@ -202,7 +202,7 @@ preprocessed_sequence = [
 
 問題4 正解
 
-入力した単語 Input: input:【】【】【】(){,output
+入力した単語 input:【】【】【】(){,output
 
 出力の単語: }
 

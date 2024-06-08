@@ -50,13 +50,13 @@ TRAINING_MODES = {
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
     "op": {  #
-        "batch_size": 155,
-        "learning_rate": 0.0010534669873278322,
-        "embedding_dim": 203,
-        "num_heads": 7,
-        "ffn_units": 395,
-        "dropout_rate": 0.11988643409963941,
-        "epochs": 10
+        "batch_size": 64,
+        "learning_rate": 0.0013894785602881381,
+        "embedding_dim": 68,
+        "gru_units": 127,
+        "dropout_rate": 0.14691088052349893,
+        "recurrent_dropout_rate": 0.10131848395001902,
+        "epochs": 60
     }
 }
 
