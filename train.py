@@ -49,14 +49,15 @@ TRAINING_MODES = {
     "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1200, "learning_rate": 0.0005},
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
-    "op": {  #
-        "batch_size": 64,
-        "learning_rate": 0.0013894785602881381,
-        "embedding_dim": 68,
-        "gru_units": 127,
-        "dropout_rate": 0.14691088052349893,
-        "recurrent_dropout_rate": 0.10131848395001902,
-        "epochs": 60
+    "op": {  
+    "batch_size": 32,
+    "learning_rate": 0.00001,
+    "embedding_dim": 16,
+    "gru_units": 32,
+    "dropout_rate": 0.3,
+    "recurrent_dropout_rate": 0.3,
+    "epochs": 1000  # ただし、早期停止により適切なエポック数で止まる
+
     }
 }
 
@@ -288,5 +289,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

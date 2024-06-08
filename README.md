@@ -31,6 +31,9 @@ export PROJECT_DIR=$(pwd)
 docker run -it \
   -v "${PROJECT_DIR}:/app/project" \
   --workdir /app/project \
+  --memory="28g" \
+  --cpus="8" \
+  --memory-swap="28g" \
   --tmpfs /tmp:rw,size=10g \
   nero1014/bracket-closer-image \
   bash

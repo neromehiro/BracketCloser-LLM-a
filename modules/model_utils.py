@@ -20,7 +20,6 @@ def define_gru_model(seq_length, output_dim, learning_rate, embedding_dim=64, gr
 
 
 
-
 def define_lstm_model(seq_length, output_dim, learning_rate, embedding_dim=64, lstm_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2, num_layers=2):
     inputs = layers.Input(shape=(seq_length,))
     x = layers.Embedding(input_dim=output_dim, output_dim=embedding_dim, mask_zero=True)(inputs)

@@ -33,3 +33,20 @@ find . -type f -exec du -h {} + | sort -rh | head -n 10
 git add .
 git commit -m "tests"
 git push origin main
+
+conda activate tf_m1
+
+
+やっぱりこっちの方がいいのでは？？
+docker pull sonoisa/deep-learning-coding:pytorch1.12.0_tensorflow2.9.1
+
+export PROJECT_DIR=$(pwd)
+docker run -it \
+  -v "${PROJECT_DIR}:/app/project" \
+  --workdir /app/project \
+  --memory="24g" \
+  --cpus="8" \
+  --memory-swap="28g" \
+  --tmpfs /tmp:rw,size=10g \
+  sonoisa/deep-learning-coding:pytorch1.12.0_tensorflow2.9.1 \
+  bash
