@@ -154,21 +154,21 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
         checkpoint_callback = ModelCheckpoint(filepath=model_path, save_weights_only=False, save_best_only=False, save_freq='epoch', verbose=1)
         history_callback = TrainingHistory(model_path, model_architecture_func)
 
-    early_stopping_callback = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True, verbose=1)
+        early_stopping_callback = EarlyStopping(monitor='val_loss', patience=4, restore_best_weights=True, verbose=1)
 
-    try:
-        history = model.fit(
-            train_dataset,
-            epochs=epochs,
-            validation_data=validation_dataset,
-            callbacks=[time_callback, checkpoint_callback, history_callback, early_stopping_callback]
-        )
-        model.save(model_path, include_optimizer=False, save_format='h5')
-        return history_callback.history, len(input_sequences)
-    except Exception as e:
-        print(f"Training failed with exception: {e}")
-        print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
-        print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
+        try:
+            history = model.fit(
+                train_dataset,
+                epochs=epochs,
+                validation_data=validation_dataset,
+                callbacks=[time_callback, checkpoint_callback, history_callback, early_stopping_callback]
+            )
+            model.save(model_path, include_optimizer=False, save_format='h5')
+            return history_callback.history, len(input_sequences)
+        except Exception as e:
+            print(f"Training failed with exception: {e}")
+            print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
+            print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
         return None, 0
 
 
@@ -176,91 +176,6 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
 
 # best_model.jsonの後
 
-def train_model(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func,
-                embedding_dim=64, gru_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2):
-    if len(input_sequences) > 0 and len(target_tokens) > 0:
-        print(f"Shapes: {input_sequences.shape}, {target_tokens.shape}")
-
-        validation_split = 0.2
-        num_validation_samples = int(validation_split * len(input_sequences))
-
-        sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
-
-        if 'transformer' in architecture or 'gpt' in architecture:
-            attention_mask = (input_sequences != 0).astype(np.float32)
-
-            train_inputs = {
-                'input_1': input_sequences[:-num_validation_samples],
-                'attention_mask': attention_mask[:-num_validation_samples]
-            }
-            val_inputs = {
-                'input_1': input_sequences[-num_validation_samples:],
-                'attention_mask': attention_mask[-num_validation_samples:]
-            }
-
-            train_dataset = tf.data.Dataset.from_tensor_slices(
-                (train_inputs,
-                 target_tokens[:-num_validation_samples],
-                 sample_weights[:-num_validation_samples])
-            ).batch(batch_size)
-
-            validation_dataset = tf.data.Dataset.from_tensor_slices(
-                (val_inputs,
-                 target_tokens[-num_validation_samples:],
-                 sample_weights[-num_validation_samples:])
-            ).batch(batch_size)
-        else:
-            train_dataset = tf.data.Dataset.from_tensor_slices(
-                (input_sequences[:-num_validation_samples],
-                 target_tokens[:-num_validation_samples],
-                 sample_weights[:-num_validation_samples])
-            ).batch(batch_size)
-
-            validation_dataset = tf.data.Dataset.from_tensor_slices(
-                (input_sequences[-num_validation_samples:],
-                 target_tokens[-num_validation_samples:],
-                 sample_weights[-num_validation_samples:])
-            ).batch(batch_size)
-
-        train_dataset = train_dataset.shuffle(buffer_size=1024)
-
-        for data, labels, weights in train_dataset.take(1):
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    print(f"Train data batch shape for {key}: {value.shape}")
-            else:
-                print("Train data batch shape: ", data.shape)
-            print("Train labels batch shape: ", labels.shape)
-            print("Train sample weights batch shape: ", weights.shape)
-
-        time_callback = TimeHistory()
-        checkpoint_callback = ModelCheckpoint(filepath=model_path, save_weights_only=False, save_best_only=True, save_freq='epoch', verbose=1)
-        history_callback = TrainingHistory(model_path, model_architecture_func)
-
-        try:
-            history = model.fit(
-                train_dataset,
-                epochs=epochs,
-                validation_data=validation_dataset,
-                callbacks=[time_callback, checkpoint_callback, history_callback]
-            )
-            
-            new_best_loss = min(history.history['val_loss'])
-
-            if new_best_loss < history_callback.best_loss:
-                print(f"New best model saved with loss: {new_best_loss}")
-            else:
-                print(f"No improvement in best loss. Previous best loss: {history_callback.best_loss}, Current best loss: {new_best_loss}")
-            
-            return history, len(input_sequences)
-        except Exception as e:
-            print(f"Training failed with exception: {e}")
-            print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
-            print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
-            return None, 0
-    else:
-        print("No data for training.")
-        return None, 0
 
 def save_final_model_metadata(model_path, history, model_architecture_func, best_params):
     metadata_path = model_path.replace('best_model.h5', 'best_model_metadata.json')
@@ -362,7 +277,93 @@ def save_optuna_best_trial(study, output_path):
 
     print(f"Best trial data has been saved to {output_path}")
     
-    
+
+def train_model(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func,
+                embedding_dim=64, gru_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2):
+    if len(input_sequences) > 0 and len(target_tokens) > 0:
+        print(f"Shapes: {input_sequences.shape}, {target_tokens.shape}")
+
+        validation_split = 0.2
+        num_validation_samples = int(validation_split * len(input_sequences))
+
+        sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
+
+        if 'transformer' in architecture or 'gpt' in architecture:
+            attention_mask = (input_sequences != 0).astype(np.float32)
+
+            train_inputs = {
+                'input_1': input_sequences[:-num_validation_samples],
+                'attention_mask': attention_mask[:-num_validation_samples]
+            }
+            val_inputs = {
+                'input_1': input_sequences[-num_validation_samples:],
+                'attention_mask': attention_mask[-num_validation_samples:]
+            }
+
+            train_dataset = tf.data.Dataset.from_tensor_slices(
+                (train_inputs,
+                 target_tokens[:-num_validation_samples],
+                 sample_weights[:-num_validation_samples])
+            ).batch(batch_size)
+
+            validation_dataset = tf.data.Dataset.from_tensor_slices(
+                (val_inputs,
+                 target_tokens[-num_validation_samples:],
+                 sample_weights[-num_validation_samples:])
+            ).batch(batch_size)
+        else:
+            train_dataset = tf.data.Dataset.from_tensor_slices(
+                (input_sequences[:-num_validation_samples],
+                 target_tokens[:-num_validation_samples],
+                 sample_weights[:-num_validation_samples])
+            ).batch(batch_size)
+
+            validation_dataset = tf.data.Dataset.from_tensor_slices(
+                (input_sequences[-num_validation_samples:],
+                 target_tokens[-num_validation_samples:],
+                 sample_weights[-num_validation_samples:])
+            ).batch(batch_size)
+
+        train_dataset = train_dataset.shuffle(buffer_size=1024)
+
+        for data, labels, weights in train_dataset.take(1):
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    print(f"Train data batch shape for {key}: {value.shape}")
+            else:
+                print("Train data batch shape: ", data.shape)
+            print("Train labels batch shape: ", labels.shape)
+            print("Train sample weights batch shape: ", weights.shape)
+
+        time_callback = TimeHistory()
+        checkpoint_callback = ModelCheckpoint(filepath=model_path, save_weights_only=False, save_best_only=True, save_freq='epoch', verbose=1)
+        history_callback = TrainingHistory(model_path, model_architecture_func)
+
+        try:
+            history = model.fit(
+                train_dataset,
+                epochs=epochs,
+                validation_data=validation_dataset,
+                callbacks=[time_callback, checkpoint_callback, history_callback]
+            )
+            
+            new_best_loss = min(history.history['val_loss'])
+
+            if new_best_loss < history_callback.best_loss:
+                print(f"New best model saved with loss: {new_best_loss}")
+            else:
+                print(f"No improvement in best loss. Previous best loss: {history_callback.best_loss}, Current best loss: {new_best_loss}")
+            
+            return history, len(input_sequences)
+        except Exception as e:
+            print(f"Training failed with exception: {e}")
+            print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
+            print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
+            return None, 0
+    else:
+        print("No data for training.")
+        return None, 0
+
     
     
     
