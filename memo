@@ -13,7 +13,7 @@ docker run -it \
   -v "${PROJECT_DIR}:/app/project" \
   --workdir /app/project \
   --tmpfs /tmp:rw,size=10g \
-  deep-learning-coding:pytorch1.12.0_tensorflow2.9.1_optuna \
+  bracket-closer-image \
   bash
 
 

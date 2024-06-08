@@ -1,5 +1,5 @@
 # ベースイメージを指定
-FROM deep-learning-coding:pytorch1.12.0_tensorflow2.9.1_optuna
+FROM nero1014/bracket-closer-image
 
 # 一時ディレクトリのサイズを増やす
 ENV TMPDIR=/tmp/docker

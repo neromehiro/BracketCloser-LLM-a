@@ -32,8 +32,9 @@ docker run -it \
   -v "${PROJECT_DIR}:/app/project" \
   --workdir /app/project \
   --tmpfs /tmp:rw,size=10g \
-  bracket-closer-image \
+  nero1014/bracket-closer-image \
   bash
+
 ```
 
 ### ステップ 3: データセットの作成(ステップ４で作成されるため不要になりました)
