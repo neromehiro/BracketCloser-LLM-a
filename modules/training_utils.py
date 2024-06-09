@@ -35,14 +35,22 @@ class TrainingHistory(tf.keras.callbacks.Callback):
         super().__init__()
         self.model_path = model_path
         self.model_architecture_func = model_architecture_func
-        self.history = []
+        self.history = {"loss": [], "val_loss": [], "accuracy": [], "val_accuracy": []}
         self.save_interval = save_interval
         self.process_id = os.getpid()
-        self.best_loss = float('inf')  # 初期値を無限大に設定
+        self.best_loss = float('inf')
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
-        self.history.append(logs.copy())
+        self.history["loss"].append(logs.get("loss"))
+        self.history["val_loss"].append(logs.get("val_loss"))
+        self.history["accuracy"].append(logs.get("accuracy"))
+        self.history["val_accuracy"].append(logs.get("val_accuracy"))
+
+        if (epoch + 1) % self.save_interval == 0:
+            self.save_metadata_and_model(epoch, logs)
+
+
 
     def save_metadata_and_model(self, epoch, logs):
         metadata_path = self.model_path.replace('.h5', f'_epoch_{epoch + 1}_pid_{self.process_id}_metadata.json')
@@ -294,10 +302,16 @@ def save_final_model_metadata(model_path, history, model_architecture_func, best
 
 
 def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size):
-    losses = [epoch_logs['loss'] for epoch_logs in history]
-    val_losses = [epoch_logs['val_loss'] for epoch_logs in history]
-    accuracies = [epoch_logs['accuracy'] for epoch_logs in history]
-    val_accuracies = [epoch_logs['val_accuracy'] for epoch_logs in history]
+    if isinstance(history, dict):
+        losses = history.get('loss', [])
+        val_losses = history.get('val_loss', [])
+        accuracies = history.get('accuracy', [])
+        val_accuracies = history.get('val_accuracy', [])
+    else:
+        losses = [epoch_logs.get('loss', None) for epoch_logs in history]
+        val_losses = [epoch_logs.get('val_loss', None) for epoch_logs in history]
+        accuracies = [epoch_logs.get('accuracy', None) for epoch_logs in history]
+        val_accuracies = [epoch_logs.get('val_accuracy', None) for epoch_logs in history]
 
     epochs_range = range(1, len(losses) + 1)
 
@@ -305,7 +319,8 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
 
     plt.subplot(1, 2, 1)
     plt.plot(epochs_range, losses, label='Training Loss')
-    plt.plot(epochs_range, val_losses, label='Validation Loss')
+    if any(val is not None for val in val_losses):
+        plt.plot(epochs_range, val_losses, label='Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.title('Training and Validation Loss')
@@ -313,7 +328,8 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
 
     plt.subplot(1, 2, 2)
     plt.plot(epochs_range, accuracies, label='Training Accuracy')
-    plt.plot(epochs_range, val_accuracies, label='Validation Accuracy')
+    if any(val is not None for val in val_accuracies):
+        plt.plot(epochs_range, val_accuracies, label='Validation Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.title('Training and Validation Accuracy')
@@ -323,6 +339,7 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
     plt.suptitle(f'Epochs: {epochs}, Batch Size: {batch_size}, Learning Rate: {learning_rate}, Files: {num_files}, Dataset Size: {dataset_size}', y=1.05)
     plt.savefig(save_path)
     plt.close()
+
 
 
 def save_final_model_metadata(model_path, history, model_architecture_func, best_params):
