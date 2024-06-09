@@ -28,7 +28,8 @@ from modules.custom_layers import CustomMultiHeadAttention
 # model_save_path = 'optuna_studies/hyper_transformer_3/hyper_transformer_25/temp_model_24_20240607175121.h5' # 点数：61 55 52 48
 # model_save_path = 'optuna_studies/hyper_gru_1/hyper_gru_221/temp_model_220_20240608064651.h5' # 点数： 63 65 68 69 76 68 73 74 75 71 ←評価高い
 # model_save_path = 'models/20240608_114717_gru_temp/best_model.h5' # 点数：73 65 70 74 68 68 76 73 68 1万データセットで50epochくらい回したもの
-model_save_path = 'models/20240608_145935_gru_temp/best_model.h5' # 点数：61 72 70 79 70
+# model_save_path = 'models/20240608_145935_gru_temp/best_model.h5' # 点数：61 72 70 79 70
+model_save_path = 'models/20240609_010943_gru_temp/best_model.h5' # 点数：
 # model_save_path = '' # 点数：
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))

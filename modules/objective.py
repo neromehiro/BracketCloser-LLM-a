@@ -59,8 +59,16 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     model_architecture_func = MODEL_ARCHITECTURES[architecture]
     epochs = 5
     
-    batch_size = trial.suggest_int("batch_size", 64, 512)
+    # まず learning_rate を検証
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
+    
+    # 次に batch_size を検証
+    batch_size = trial.suggest_int("batch_size", 64, 512)
+    
+    # 正規化パラメータを検証
+    regularizer_type = trial.suggest_categorical("regularizer_type", ['l1', 'l2'])
+    regularizer_value = trial.suggest_float("regularizer_value", 1e-5, 1e-1, log=True)
+    
     seq_length = 30
     
     model = None
@@ -70,14 +78,14 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
         gru_units = trial.suggest_int("gru_units", 64, 128)
         dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
         recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)
-        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, gru_units, dropout_rate, recurrent_dropout_rate)
+        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, gru_units, dropout_rate, recurrent_dropout_rate, regularizer_type, regularizer_value)
     
     elif architecture == "transformer":
         embedding_dim = trial.suggest_int("embedding_dim", 64, 256)
         num_heads = trial.suggest_int("num_heads", 2, 8)
         ffn_units = trial.suggest_int("ffn_units", 256, 512)
         dropout_rate = trial.suggest_float("dropout_rate", 0.05, 0.4)
-        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate)
+        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate, regularizer_type, regularizer_value)
     
     elif architecture == "lstm":
         embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
@@ -85,7 +93,7 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
         dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
         recurrent_dropout_rate = trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)
         num_layers = trial.suggest_int("num_layers", 1, 3)
-        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, lstm_units, dropout_rate, recurrent_dropout_rate, num_layers)
+        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, lstm_units, dropout_rate, recurrent_dropout_rate, num_layers, regularizer_type, regularizer_value)
     
     elif architecture == "bert":
         embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
@@ -93,14 +101,14 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
         ffn_units = trial.suggest_int("ffn_units", 128, 256)
         num_layers = trial.suggest_int("num_layers", 1, 3)
         dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
-        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, num_layers, dropout_rate)
+        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, num_layers, dropout_rate, regularizer_type, regularizer_value)
     
     elif architecture == "gpt":
         embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
         num_heads = trial.suggest_int("num_heads", 2, 4)
         ffn_units = trial.suggest_int("ffn_units", 128, 256)
         dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
-        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate)
+        model = model_architecture_func(seq_length, len(tokens) + 1, learning_rate, embedding_dim, num_heads, ffn_units, dropout_rate, regularizer_type, regularizer_value)
     
     vocab_set = set(tokens)
     all_input_sequences = []
@@ -176,6 +184,8 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
                     "dropout_rate": dropout_rate,
                     "recurrent_dropout_rate": recurrent_dropout_rate if architecture == 'gru' else None,
                     "num_layers": num_layers if architecture in ['lstm', 'bert'] else None,
+                    "regularizer_type": regularizer_type,
+                    "regularizer_value": regularizer_value,
                     "model_path": temp_model_path
                 }
                 
@@ -189,7 +199,6 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     except Exception as e:
         print(f"Training failed with exception: {e}")
         return float('inf')
-
     
     
 def save_best_trial_to_json(study, study_name):
