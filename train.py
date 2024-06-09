@@ -50,13 +50,13 @@ TRAINING_MODES = {
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
     "op": {  
-    "batch_size": 32,
-    "learning_rate": 0.00001,
-    "embedding_dim": 16,
-    "gru_units": 32,
-    "dropout_rate": 0.3,
-    "recurrent_dropout_rate": 0.3,
-    "epochs": 1000  # ただし、早期停止により適切なエポック数で止まる
+        "batch_size": 64, # アプローチ2 :モデルの複雑度を上げ、データセットを大幅に増やす
+        "learning_rate": 0.0001,
+        "embedding_dim": 128,
+        "gru_units": 256,
+        "dropout_rate": 0.2,
+        "recurrent_dropout_rate": 0.2,
+        "epochs": 1000  # 早期停止を有効にする
 
     }
 }
@@ -148,13 +148,16 @@ def select_mode_and_architecture():
 
 def generate_datasets(base_dir, num_samples):
     dataset_sizes = [100, 300, 500, 800, 1000, 3000, 5000, 10000]
+
+    # データセットサイズのリストにない場合でも生成可能にする
     if num_samples not in dataset_sizes:
-        raise ValueError(f"Invalid number of samples. Choose from {dataset_sizes}")
+        print(f"Number of samples {num_samples} is not in the predefined list, but will be generated.")
     
     num_datasets = 1  # 必要に応じて変更可能
+
     # 既存の生成関数を呼び出し、正しいパスに生成されるようにする
     optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
-    print(f"Generated datasets in {base_dir}")  # デバッグ用に追加
+    print(f"Generated {num_samples} samples dataset in {base_dir}")  # デバッグ用に追加
 
 
 
