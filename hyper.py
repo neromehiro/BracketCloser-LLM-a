@@ -161,6 +161,7 @@ def main():
 
     n_jobs = int(input("Enter the number of parallel jobs: ").strip())
     try:
+        # main関数のtryブロックの中でstudyを定義する箇所の直後に以下のコードを挿入します
         study = optuna.create_study(
             study_name=study_name, 
             direction="minimize", 
@@ -175,6 +176,7 @@ def main():
             n_jobs=n_jobs, 
             callbacks=[callback]
         )
+
     except Exception as e:
         print(f"An exception occurred during optimization: {e}")
     finally:

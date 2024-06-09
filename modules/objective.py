@@ -11,6 +11,7 @@ from modules.setup import setup, parse_time_limit
 from datetime import datetime,timedelta
 import json
 import tensorflow as tf
+from tensorflow.keras.callbacks import EarlyStopping
 
 MODEL_ARCHITECTURES = {
     "gru": define_gru_model,
@@ -55,24 +56,18 @@ def load_training_data(encode_dir_path, seq_length, num_files=10):
 
     return all_input_sequences, all_target_tokens
 
+
 def objective(trial, architecture, best_loss, encode_dir_path, create_save_folder_func, study, study_name):
     model_architecture_func = MODEL_ARCHITECTURES[architecture]
-    epochs = 5
     
-    # まず learning_rate を検証
+    # パラメータの提案
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
-    
-    # 次に batch_size を検証
     batch_size = trial.suggest_int("batch_size", 64, 512)
-    
-    # 正規化パラメータを検証
     regularizer_type = trial.suggest_categorical("regularizer_type", ['l1', 'l2'])
     regularizer_value = trial.suggest_float("regularizer_value", 1e-5, 1e-1, log=True)
-    
     seq_length = 30
-    
-    model = None
 
+    # アーキテクチャに依存するパラメータの提案
     if architecture == "gru":
         embedding_dim = trial.suggest_int("embedding_dim", 64, 128)
         gru_units = trial.suggest_int("gru_units", 64, 128)
@@ -141,18 +136,23 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     timestamp = (datetime.now() + timedelta(hours=9)).strftime("%Y%m%d%H%M%S")
     temp_model_path = os.path.join(save_path, f"temp_model_{trial.number}_{timestamp}.h5")
     os.makedirs(os.path.dirname(temp_model_path), exist_ok=True)
+    
+    # Early Stoppingの設定
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
     try:
         history, dataset_size = train_model(
             model, 
             all_input_sequences, 
             all_target_tokens, 
-            epochs=epochs, 
+            epochs=10,  # 初期エポック数
             batch_size=batch_size, 
             model_path=temp_model_path, 
             num_files=num_files, 
             learning_rate=learning_rate, 
             architecture=architecture, 
-            model_architecture_func=model_architecture_func
+            model_architecture_func=model_architecture_func,
+            callbacks=[early_stopping]  # Early Stoppingを追加
         )
         
         if history is None or isinstance(history, float):
@@ -177,7 +177,7 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
                     "time": timestamp,
                     "model_architecture": model_architecture_func.__name__,
                     "batch_size": batch_size,
-                    "epochs": epochs,
+                    "epochs": len(history.history['loss']),
                     "learning_rate": learning_rate,
                     "embedding_dim": embedding_dim,
                     "gru_units": gru_units if architecture == 'gru' else None,
@@ -199,7 +199,7 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     except Exception as e:
         print(f"Training failed with exception: {e}")
         return float('inf')
-    
+
     
 def save_best_trial_to_json(study, study_name):
     best_trial = study.best_trial
