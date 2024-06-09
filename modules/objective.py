@@ -133,10 +133,11 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
     all_target_tokens = np.array(all_target_tokens)
 
     save_path = create_save_folder_func()
+    print("この部分にsaveします  " + save_path)
     timestamp = (datetime.now() + timedelta(hours=9)).strftime("%Y%m%d%H%M%S")
     temp_model_path = os.path.join(save_path, f"temp_model_{trial.number}_{timestamp}.h5")
     os.makedirs(os.path.dirname(temp_model_path), exist_ok=True)
-    
+
     # Early Stoppingの設定
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
 
@@ -155,6 +156,11 @@ def objective(trial, architecture, best_loss, encode_dir_path, create_save_folde
             callbacks=[early_stopping]  # Early Stoppingを追加
         )
         
+        # モデルの保存
+        print(f"Saving model to {temp_model_path}")
+        model.save(temp_model_path)
+        print(f"Model saved to {temp_model_path}")
+            
         if history is None or isinstance(history, float):
             print("Training failed with invalid return. Returning inf loss.")
             return float('inf')
