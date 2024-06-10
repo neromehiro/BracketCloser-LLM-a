@@ -29,7 +29,8 @@ from modules.custom_layers import CustomMultiHeadAttention
 # model_save_path = 'optuna_studies/hyper_gru_1/hyper_gru_221/temp_model_220_20240608064651.h5' # 点数： 63 65 68 69 76 68 73 74 75 71 ←評価高い
 # model_save_path = 'models/20240608_114717_gru_temp/best_model.h5' # 点数：73 65 70 74 68 68 76 73 68 1万データセットで50epochくらい回したもの
 # model_save_path = 'models/20240608_145935_gru_temp/best_model.h5' # 点数：61 72 70 79 70
-model_save_path = 'models/gru_20240609_181322_181m/best_model_epoch_200.h5' # 点数：78 76 76 83 70 66 75 データセットを毎回のepochで更新 
+# model_save_path = 'models/gru_20240609_181322_181m/best_model_epoch_200.h5' # 点数：78 76 76 83 70 66 75 データセットを毎回のepochで更新 
+model_save_path = 'models/gru_20240609_232711_232m/best_model_epoch_1_pid_40460.h5' # 点数： 74 71 73
 # model_save_path = '' # 点数：
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))

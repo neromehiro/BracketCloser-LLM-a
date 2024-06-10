@@ -82,7 +82,7 @@ class TrainingHistory(tf.keras.callbacks.Callback):
 
 
 def train_model(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func,
-                embedding_dim=64, gru_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2, regularizer_type='l2', regularizer_value=0.01, callbacks=None):
+                generate_data_func=None, embedding_dim=64, gru_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2, regularizer_type='l2', regularizer_value=0.01, callbacks=None):
     if len(input_sequences) > 0 and len(target_tokens) > 0:
         print(f"Shapes: {input_sequences.shape}, {target_tokens.shape}")
 
@@ -91,16 +91,16 @@ def train_model(model, input_sequences, target_tokens, epochs, batch_size, model
 
         sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
 
-        if 'transformer' in architecture or 'gpt' in architecture:
+        if 'bert' in architecture or 'transformer' in architecture or 'gpt' in architecture:
             attention_mask = (input_sequences != 0).astype(np.float32)
 
             train_inputs = {
                 'input_1': input_sequences[:-num_validation_samples],
-                'attention_mask': attention_mask[:-num_validation_samples]
+                'attention_mask': attention_mask[:-num_validation_samples]  # キー名を 'attention_mask' に統一
             }
             val_inputs = {
                 'input_1': input_sequences[-num_validation_samples:],
-                'attention_mask': attention_mask[-num_validation_samples:]
+                'attention_mask': attention_mask[-num_validation_samples:]  # キー名を 'attention_mask' に統一
             }
 
             train_dataset = tf.data.Dataset.from_tensor_slices(
@@ -129,6 +129,7 @@ def train_model(model, input_sequences, target_tokens, epochs, batch_size, model
 
         train_dataset = train_dataset.shuffle(buffer_size=1024)
 
+        # データの形状を出力
         for data, labels, weights in train_dataset.take(1):
             if isinstance(data, dict):
                 for key, value in data.items():
@@ -167,7 +168,6 @@ def train_model(model, input_sequences, target_tokens, epochs, batch_size, model
         print("No data for training.")
         return None, 0
 
-    
     
 # TRAINING_MODES に含まれる変数を渡すための変更
 def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, **kwargs):

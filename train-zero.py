@@ -58,7 +58,7 @@ TRAINING_MODES = {
         "gru_units": 90,
         "dropout_rate": 0.10421276428973633,
         "recurrent_dropout_rate": 0.21222279862119903,
-        "epochs": 200,
+        "epochs": 1000,
         "num_files": 10  # 適切な数値を追加してください
     }
 }
