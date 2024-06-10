@@ -161,7 +161,6 @@ def generate_datasets(base_dir, num_samples):
     optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
     print(f"Generated {num_samples} samples dataset in {base_dir}")  # デバッグ用に追加
 
-
 def main():
     model_architecture_func, training_mode, architecture = select_mode_and_architecture()
     num_samples = int(input("Enter the number of samples for the dataset (100, 300, 500, 800, 1000, 3000, 5000, 10000): ").strip())
@@ -191,6 +190,27 @@ def main():
     # 全エポックの履歴を格納するリスト
     full_history = []
 
+    model_path = os.path.join(temp_save_dir, "best_model.h5")
+
+    # 初期メタデータの設定と保存
+    initial_metadata = {
+        "training_duration_minutes": 0,
+        "epochs": training_mode["epochs"],
+        "batch_size": training_mode["batch_size"],
+        "num_files": training_mode["num_files"],
+        "learning_rate": learning_rate,
+        "dataset_size": num_samples,
+        "model_size_MB": 0,
+        "model_params": model.count_params(),
+        "model_architecture": model_architecture_func.__name__,
+        "training_start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "training_end_time": ""
+    }
+
+    training_info_path = os.path.join(temp_save_dir, "training_info.json")
+    with open(training_info_path, "w") as info_file:
+        json.dump(initial_metadata, info_file, indent=4)
+
     for epoch in range(training_mode["epochs"]):
         print(f"Starting epoch {epoch + 1}/{training_mode['epochs']}")
 
@@ -217,8 +237,6 @@ def main():
 
         all_input_sequences = np.concatenate(all_input_sequences, axis=0)
         all_target_tokens = np.concatenate(all_target_tokens, axis=0)
-
-        model_path = os.path.join(temp_save_dir, "best_model.h5")  # 各エポックで同じファイル名を使用
 
         # モデルの学習
         history, dataset_size = train_model_single(
@@ -258,15 +276,7 @@ def main():
                         print(f"Epoch log: {epoch_data}")
                         full_history.append(epoch_data)
 
-
-
-
-
-
-
-        all_input_sequences = []
-        all_target_tokens = []
-        # 全エポック終了後にトレーニング履歴をプロット
+        # エポック終了後にトレーニング履歴をプロット
         plot_data = {
             'loss': [epoch['loss'] for epoch in full_history],
             'val_loss': [epoch['val_loss'] for epoch in full_history],
@@ -284,10 +294,8 @@ def main():
             dataset_size=dataset_size
         )
 
-
-
-
-
+        all_input_sequences = []
+        all_target_tokens = []
 
     end_time = datetime.now(japan_timezone)
     training_duration = (end_time - start_time).total_seconds() / 60  # 分単位に変換
@@ -296,39 +304,19 @@ def main():
     final_save_dir = os.path.join(model_save_path, f"{architecture}_{timestamp}_{int(training_duration)}m")
     os.rename(temp_save_dir, final_save_dir)
 
-    # パスを更新
-    # training_info.json の読み込みと更新部分を修正
-    training_info_path = os.path.join(final_save_dir, "training_info.json")
-    if os.path.exists(training_info_path):
-        with open(training_info_path, "r") as info_file:
-            training_info = json.load(info_file)
-    else:
-        training_info = {}
-
-    training_info.update(metadata)
-
-    with open(training_info_path, "w") as info_file:
-        json.dump(training_info, info_file, indent=4)
-
     model_path = os.path.join(final_save_dir, "best_model.h5")
     plot_path = os.path.join(final_save_dir, "training_history.png")
 
     model_size = os.path.getsize(model_path) / (1024 * 1024)  # MB単位に変換
-    model_params = model.count_params()
 
     metadata = {
         "training_duration_minutes": training_duration,
-        "epochs": training_mode["epochs"],
-        "batch_size": training_mode["batch_size"],
-        "num_files": training_mode["num_files"],
-        "learning_rate": learning_rate,
-        "dataset_size": num_samples,
-        "model_size_MB": model_size,
-        "model_params": model_params,
-        "model_architecture": model_architecture_func.__name__,
-        "training_end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
+        "training_end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "model_size_MB": model_size
     }
 
+    # training_info.json の読み込みと更新
+    training_info_path = os.path.join(final_save_dir, "training_info.json")
     with open(training_info_path, "r") as info_file:
         training_info = json.load(info_file)
     training_info.update(metadata)
@@ -340,7 +328,6 @@ def main():
     print(f"Training duration: {training_duration:.2f} minutes")
     print(f"Model size: {model_size:.2f} MB")
     print(f"Model parameters: {model_params}")
-
 
 if __name__ == "__main__":
     main()

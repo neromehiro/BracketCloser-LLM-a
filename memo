@@ -29,7 +29,7 @@ docker run -it \
 
   ## コードを戻したいとき
 # ローカルのリポジトリを特定のコミットに戻す
-git reset --hard 8c4e1864355db372afa7e3febfb81977aca8041b
+git reset --hard 33a7d9673b5dad2f5139766fb05d55b3022c7a57
 git push origin main --force
 git checkout main
 
