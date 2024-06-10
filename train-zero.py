@@ -10,6 +10,8 @@ from modules.training_utils import train_model_single, plot_training_history
 from modules.custom_layers import CustomMultiHeadAttention
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import optuna_data_generator  # このインポートを追加
+from tensorflow.keras.optimizers import Adam  # 追加
+
 
 # 日本時間のタイムゾーンを設定
 japan_timezone = pytz.timezone("Asia/Tokyo")

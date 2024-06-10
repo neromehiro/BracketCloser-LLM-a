@@ -261,7 +261,7 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
                 validation_data=validation_dataset,
                 callbacks=[time_callback, checkpoint_callback, history_callback, early_stopping_callback]
             )
-            model.save(model_path, include_optimizer=False, save_format='h5')
+            model.save(model_path, include_optimizer=True)
             return history_callback.history, len(input_sequences)
         except Exception as e:
             print(f"Training failed with exception: {e}")
