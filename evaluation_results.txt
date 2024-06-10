@@ -1,72 +1,564 @@
-Input: input:【【【】()()】【【】{},output
+Input: input:()(()【】){}(【,output
+Expected: 】)
+Predicted: 】
+
+Input: input:【【【{}】{}{【{}()】}】,output
+Expected: 】
+Predicted: 】
+
+Input: input:((【】【】【】【】)【】(【】,output
+Expected: ))
+Predicted: )
+
+Input: input:【{}()】【{}{}【】()(),output
+Expected: 】
+Predicted: 】
+
+Input: input:【{}(){}【】()【,output
 Expected: 】】
 Predicted: 】
 
-Input: input:【【()()【】【】{}】({}),output
-Expected: 】
-Predicted: 】
-
-Input: input:{{}{}{}{}}{{}【】(,output
-Expected: )}
+Input: input:(【】)()【{({【】{}},output
+Expected: )}】
 Predicted: )
 
-Input: input:【{【【】{}()】【()】},output
-Expected: 】
-Predicted: 】
-
-Input: input:{{}【,output
-Expected: 】}
-Predicted: 】
-
-Input: input:{【】(((【】())(){})),output
+Input: input:{}()【】{,output
 Expected: }
 Predicted: }
 
-Input: input:({}{}【】{}【】(){,output
-Expected: })
-Predicted: }
+Input: input:{}【【{}】,output
+Expected: 】
+Predicted: 】
 
-Input: input:【【】{【】,output
+Input: input:(()【】,output
+Expected: )
+Predicted: )
+
+Input: input:{{{}}{}【【{}(())】,output
+Expected: }】
+Predicted: 】
+
+Input: input:(({}{}【】(),output
+Expected: ))
+Predicted: )
+
+Input: input:{(【()】{(())},output
+Expected: )}
+Predicted: )
+
+Input: input:((){}【】{}{},output
+Expected: )
+Predicted: )
+
+Input: input:(【({},output
+Expected: )】)
+Predicted: )
+
+Input: input:{}【【【【】】】(()【,output
+Expected: 】)】
+Predicted: 】
+
+Input: input:(【】{}()【】,output
+Expected: )
+Predicted: )
+
+Input: input:【()【】(){,output
 Expected: }】
 Predicted: }
 
-Input: input:({}【】【】【】【】(),output
+Input: input:(【(((){}()()(){}))】,output
 Expected: )
 Predicted: )
 
-Input: input:{{【】}{}【(){}()(,output
-Expected: )】}
-Predicted: )
-
-Input: input:(()((【】){【】()()(),output
-Expected: }))
+Input: input:({}{,output
+Expected: })
 Predicted: }
 
-Input: input:【】({},output
+Input: input:【((()({})【】)(()),output
+Expected: )】
+Predicted: )
+
+Input: input:({}{}(){}{}()(),output
 Expected: )
 Predicted: )
 
-Input: input:【(){(【】){,output
-Expected: }}】
+Input: input:(【{}】【{}】(){}【【,output
+Expected: 】】)
+Predicted: 】
+
+Input: input:(((,output
+Expected: )))
+Predicted: )
+
+Input: input:(({}{})【,output
+Expected: )】
+Predicted: 】
+
+Input: input:【【{}【】【,output
+Expected: 】】】
+Predicted: 】
+
+Input: input:((){}{}(()),output
+Expected: )
+Predicted: )
+
+Input: input:【【】【】{}(){},output
+Expected: 】
+Predicted: 】
+
+Input: input:【【{,output
+Expected: }】】
+Predicted: }
+
+Input: input:【【】【】,output
+Expected: 】
+Predicted: 】
+
+Input: input:(()()()【,output
+Expected: 】)
+Predicted: 】
+
+Input: input:{((【】),output
+Expected: )}
+Predicted: )
+
+Input: input:{【】【】}({}【】){,output
+Expected: }
+Predicted: }
+
+Input: input:(()【】(【】)(())【,output
+Expected: )】
+Predicted: 】
+
+Input: input:【【(【】【】(()))】,output
+Expected: 】
+Predicted: 】
+
+Input: input:{{((){}【】{}(),output
+Expected: )}}
+Predicted: }
+
+Input: input:{【】【】{}}()【【】【,output
+Expected: 】】
+Predicted: 】
+
+Input: input:【【【】(){}()【】】【{},output
+Expected: 】】
+Predicted: 】
+
+Input: input:【【()({})(,output
+Expected: )】】
+Predicted: )
+
+Input: input:({}{}){}({}{}{}{}{,output
+Expected: })
+Predicted: }
+
+Input: input:{{{}()},output
+Expected: }
+Predicted: }
+
+Input: input:【【()()】】(,output
+Expected: )
+Predicted: )
+
+Input: input:【【】{,output
+Expected: 】}
+Predicted: }
+
+Input: input:【(){}【】【】{}(,output
+Expected: )】
+Predicted: )
+
+Input: input:【((){}()){【】{}(,output
+Expected: )}】
+Predicted: )
+
+Input: input:【【【】】({【】({}),output
+Expected: })】
+Predicted: }
+
+Input: input:(【{}【】,output
+Expected: )】
+Predicted: 】
+
+Input: input:【{}(){}{}(,output
+Expected: )】
+Predicted: )
+
+Input: input:{【【】【】】{【】{}{}}{,output
+Expected: }}
+Predicted: }
+
+Input: input:{()(){,output
+Expected: }}
+Predicted: }
+
+Input: input:{【【】【】】}【,output
+Expected: 】
+Predicted: 】
+
+Input: input:{(【】)(【】{}(){}()(),output
+Expected: )}
+Predicted: )
+
+Input: input:{{{{{}()()()()}},output
+Expected: }}
+Predicted: }
+
+Input: input:【【】{}{}【】()【】{},output
+Expected: 】
+Predicted: 】
+
+Input: input:()【】【】()(,output
+Expected: )
+Predicted: )
+
+Input: input:【{}【,output
+Expected: 】】
+Predicted: 】
+
+Input: input:{}(){}{,output
+Expected: }
+Predicted: }
+
+Input: input:(【】()【,output
+Expected: 】)
+Predicted: 】
+
+Input: input:(((){}){【】,output
+Expected: })
+Predicted: }
+
+Input: input:{{}【】【】()【】,output
+Expected: }
+Predicted: }
+
+Input: input:【(【】{},output
+Expected: 】)
+Predicted: )
+
+Input: input:(【】){{()()(){}{}【,output
+Expected: 】}}
+Predicted: 】
+
+Input: input:()({【】{{}}},output
+Expected: )
+Predicted: )
+
+Input: input:【】()({,output
+Expected: })
+Predicted: }
+
+Input: input:【【】【】,output
+Expected: 】
+Predicted: 】
+
+Input: input:【【【{}】,output
+Expected: 】】
+Predicted: 】
+
+Input: input:{【】【】(,output
+Expected: )}
+Predicted: )
+
+Input: input:{}{()((【】,output
+Expected: ))}
+Predicted: )
+
+Input: input:{【】【】{}(),output
+Expected: }
+Predicted: }
+
+Input: input:【】【(()),output
+Expected: 】
+Predicted: 】
+
+Input: input:({【()】}(({}【】【】),output
+Expected: ))
+Predicted: )
+
+Input: input:【{【【】】,output
+Expected: 】}
+Predicted: }
+
+Input: input:【【】()()(){}(){},output
+Expected: 】
+Predicted: 】
+
+Input: input:({【,output
+Expected: 】})
+Predicted: 】
+
+Input: input:【(){【,output
+Expected: 】}】
+Predicted: 】
+
+Input: input:【【】{(),output
+Expected: 】}
+Predicted: }
+
+Input: input:((【({})】){【{}【】】},output
+Expected: )
+Predicted: )
+
+Input: input:{{{}}}(【()【】】,output
+Expected: )
+Predicted: )
+
+Input: input:{【】{},output
+Expected: }
+Predicted: }
+
+Input: input:(((){}(()【】())【】),output
+Expected: )
+Predicted: )
+
+Input: input:{{()}【{}()【】()】【,output
+Expected: }】
+Predicted: 】
+
+Input: input:{{}(){}()(),output
+Expected: }
+Predicted: }
+
+Input: input:{{}}{()}【()【】,output
+Expected: 】
+Predicted: 】
+
+Input: input:【{(),output
+Expected: }】
 Predicted: }
 
 Input: input:{【】(),output
 Expected: }
 Predicted: }
 
-Input: input:()【【{}】】{}【{}】()【,output
-Expected: 】
-Predicted: 】
-
-Input: input:【【】(){}()【】{}【】(),output
-Expected: 】
-Predicted: 】
-
-Input: input:【{()}(【{}【】】{,output
-Expected: })】
+Input: input:({}【】(){}{,output
+Expected: })
 Predicted: }
 
-Input: input:{{({{}}),output
+Input: input:()()【】{}【】{}{,output
+Expected: }
+Predicted: }
+
+Input: input:({}(,output
+Expected: ))
+Predicted: )
+
+Input: input:【】【【】((()),output
+Expected: )】
+Predicted: )
+
+Input: input:{(【】{}())}{}{【(),output
+Expected: 】}
+Predicted: 】
+
+Input: input:(){}【】(,output
+Expected: )
+Predicted: )
+
+Input: input:【{{{}(){}},output
+Expected: 】}
+Predicted: }
+
+Input: input:【【{}【】【】,output
+Expected: 】】
+Predicted: 】
+
+Input: input:(【【】】,output
+Expected: )
+Predicted: )
+
+Input: input:(())(【((()【】()()))】,output
+Expected: )
+Predicted: )
+
+Input: input:(【【】】({}()【】【】{}(),output
+Expected: ))
+Predicted: )
+
+Input: input:{}(【{【】}】,output
+Expected: )
+Predicted: )
+
+Input: input:{{}【】【】}(【,output
+Expected: 】)
+Predicted: 】
+
+Input: input:()()(){,output
+Expected: }
+Predicted: }
+
+Input: input:【{()},output
+Expected: 】
+Predicted: 】
+
+Input: input:({}【()】(){(,output
+Expected: )})
+Predicted: )
+
+Input: input:((){(【【】】(){},output
+Expected: )})
+Predicted: )
+
+Input: input:(【{}()【】(){}【】,output
+Expected: 】)
+Predicted: 】
+
+Input: input:{{}{}(),output
+Expected: }
+Predicted: }
+
+Input: input:【(){}【,output
+Expected: 】】
+Predicted: 】
+
+Input: input:【】(【】)【{{()}},output
+Expected: 】
+Predicted: 】
+
+Input: input:【(【】()),output
+Expected: 】
+Predicted: 】
+
+Input: input:{{()}{,output
+Expected: }}
+Predicted: }
+
+Input: input:({(){}【】},output
+Expected: )
+Predicted: )
+
+Input: input:{{()【】{}(,output
+Expected: )}}
+Predicted: )
+
+Input: input:【(()()【】{}),output
+Expected: 】
+Predicted: 】
+
+Input: input:{{()【【】【【】{}】】,output
+Expected: }}
+Predicted: }
+
+Input: input:【{{}}{(【】,output
+Expected: )}】
+Predicted: )
+
+Input: input:【】【【【,output
+Expected: 】】】
+Predicted: 】
+
+Input: input:{}【【】{()()()()()【】},output
+Expected: 】
+Predicted: 】
+
+Input: input:{{{}【【】{},output
+Expected: 】}}
+Predicted: 】
+
+Input: input:【【{}【】,output
+Expected: 】】
+Predicted: 】
+
+Input: input:{【{},output
+Expected: }】
+Predicted: 】
+
+Input: input:(()【】【】()【】【】【,output
+Expected: 】)
+Predicted: 】
+
+Input: input:{}((),output
+Expected: )
+Predicted: )
+
+Input: input:【】((){(()){{}{}}},output
+Expected: )
+Predicted: )
+
+Input: input:【(){({{}}()),output
+Expected: }】
+Predicted: }
+
+Input: input:{}【】()【】()()【】【】{,output
+Expected: }
+Predicted: }
+
+Input: input:【{}(){}(,output
+Expected: )】
+Predicted: )
+
+Input: input:【{}【({}){{}【】{}},output
+Expected: 】】
+Predicted: 】
+
+Input: input:({}【】)({}【】){{}()(),output
+Expected: }
+Predicted: }
+
+Input: input:{}【】【()【】,output
+Expected: 】
+Predicted: 】
+
+Input: input:【】【】(,output
+Expected: )
+Predicted: )
+
+Input: input:{(()),output
+Expected: }
+Predicted: }
+
+Input: input:{{{}{}}}【】{(,output
+Expected: )}
+Predicted: )
+
+Input: input:(【(){}【】【】】【】,output
+Expected: )
+Predicted: )
+
+Input: input:({({()})(({}【】))},output
+Expected: )
+Predicted: )
+
+Input: input:【【】【】(){}【】【】()(,output
+Expected: )】
+Predicted: )
+
+Input: input:({}){【{【】}【()【】,output
+Expected: 】】}
+Predicted: 】
+
+Input: input:【()】{(,output
+Expected: )}
+Predicted: )
+
+Input: input:【【】【】【】【】【】()】{【,output
+Expected: 】}
+Predicted: 】
+
+Input: input:(【{({}),output
+Expected: }】)
+Predicted: }
+
+Input: input:{【{()}【(){}】】,output
+Expected: }
+Predicted: }
+
+Input: input:【【】()【,output
+Expected: 】】
+Predicted: 】
+
+Input: input:{【【【】】】,output
+Expected: }
+Predicted: }
+
+Input: input:{{}}【】(())【{}(),output
+Expected: 】
+Predicted: 】
+
+Input: input:【】{{}{}()}{(){,output
 Expected: }}
 Predicted: }
 
@@ -74,727 +566,235 @@ Input: input:【【】{,output
 Expected: }】
 Predicted: }
 
-Input: input:【{}【】,output
-Expected: 】
-Predicted: 】
-
-Input: input:()(({}【】())【,output
-Expected: 】)
-Predicted: 】
-
-Input: input:【((【】,output
-Expected: ))】
+Input: input:【【】{}{}(,output
+Expected: )】
 Predicted: )
 
-Input: input:【()】((){{}()(,output
-Expected: )})
+Input: input:(【】【】【】{}【】()【】(,output
+Expected: ))
 Predicted: )
 
-Input: input:{(){【】{【】【】{}}()(),output
-Expected: }}
+Input: input:【【】()()】{,output
+Expected: }
 Predicted: }
 
-Input: input:{({{}}{}【{{}}】(,output
-Expected: ))}
+Input: input:{({(【】{})}【】),output
+Expected: }
+Predicted: }
+
+Input: input:【】({【】{{【】()()}【】},output
+Expected: })
 Predicted: )
 
-Input: input:(【】()【】{},output
+Input: input:(【【】()(),output
+Expected: )】
+Predicted: 】
+
+Input: input:(【{()()}】,output
 Expected: )
 Predicted: )
 
-Input: input:【【【({}{}){()},output
-Expected: 】】】
+Input: input:(((),output
+Expected: ))
+Predicted: )
+
+Input: input:((【】【】,output
+Expected: ))
+Predicted: )
+
+Input: input:【()【】,output
+Expected: 】
 Predicted: 】
 
-Input: input:(()){【】【】【】{}【,output
-Expected: 】}
+Input: input:({}【】()【,output
+Expected: 】)
 Predicted: 】
 
-Input: input:{{{,output
+Input: input:【】{}{{【】((()),output
+Expected: )}}
+Predicted: }
+
+Input: input:((【】)){【】{{【】【】,output
 Expected: }}}
 Predicted: }
 
-Input: input:【【】{}{}()【】{,output
-Expected: }】
-Predicted: }
-
-Input: input:(【】【,output
-Expected: 】)
-Predicted: 】
-
-Input: input:{{}【】()}【{}【,output
-Expected: 】】
-Predicted: 】
-
-Input: input:{【()【】,output
-Expected: }】
-Predicted: 】
-
-Input: input:(()【】)()【(){}】{,output
-Expected: }
-Predicted: }
-
-Input: input:{}【】{{}【】,output
-Expected: }
-Predicted: }
-
-Input: input:【【】【】()()】{()(),output
-Expected: }
-Predicted: }
-
-Input: input:【{}()【】{}{}(,output
-Expected: )】
-Predicted: )
-
-Input: input:{}{{}【【{}()【】{}{}】,output
-Expected: 】}
-Predicted: 】
-
-Input: input:{【】(,output
-Expected: )}
-Predicted: )
-
-Input: input:{()}{(【】),output
-Expected: }
-Predicted: }
-
-Input: input:{{【】}{【{{}{}【】()},output
+Input: input:{{【【【】】{},output
 Expected: 】}}
 Predicted: }
 
-Input: input:{{{}【】}()【,output
-Expected: }】
-Predicted: }
-
-Input: input:【({}{},output
-Expected: 】)
-Predicted: )
-
-Input: input:{{【】},output
-Expected: }
-Predicted: }
-
-Input: input:{【【】】【,output
-Expected: }】
-Predicted: }
-
-Input: input:(【(){}】{{},output
-Expected: )}
-Predicted: }
-
-Input: input:(【】{})【【】】【(,output
-Expected: )】
-Predicted: )
-
-Input: input:【()(){}【】,output
+Input: input:()【{({}())【【】】},output
 Expected: 】
 Predicted: 】
 
-Input: input:【((){}()(),output
-Expected: )】
+Input: input:{}()((()【【】】,output
+Expected: ))
 Predicted: )
 
-Input: input:【【【】(((){}()){【】})】,output
-Expected: 】
-Predicted: 】
-
-Input: input:(【{}{}()(,output
-Expected: )】)
-Predicted: )
-
-Input: input:()()()【】{,output
-Expected: }
+Input: input:(){}{}{{({()}()【】),output
+Expected: }}
 Predicted: }
 
-Input: input:【({【{}】},output
-Expected: )】
-Predicted: )
-
-Input: input:{}【】{(【【【】【】】】),output
-Expected: }
-Predicted: }
-
-Input: input:(【【】【()】(){{},output
+Input: input:{}【】(【{}(){,output
 Expected: }】)
 Predicted: }
 
-Input: input:()(【】{}【】【】()(,output
-Expected: ))
-Predicted: )
-
-Input: input:{{()}{},output
+Input: input:{(){},output
 Expected: }
 Predicted: }
 
-Input: input:【【】【,output
-Expected: 】】
-Predicted: 】
-
-Input: input:【【】】{【】,output
-Expected: }
-Predicted: }
-
-Input: input:{()({({}())}),output
-Expected: }
-Predicted: }
-
-Input: input:{{}{},output
-Expected: }
-Predicted: }
-
-Input: input:{【】}【{}【【】{,output
-Expected: }】】
-Predicted: }
-
-Input: input:{{{()}(()()(),output
-Expected: )}}
-Predicted: )
-
-Input: input:【】(({【{}【】】,output
-Expected: }))
-Predicted: }
-
-Input: input:((){{},output
-Expected: })
-Predicted: }
-
-Input: input:【【【()】】,output
-Expected: 】
-Predicted: 】
-
-Input: input:{{(){}{}{}},output
-Expected: }
-Predicted: }
-
-Input: input:(()【】【】{{}}【】【,output
-Expected: 】)
-Predicted: )
-
-Input: input:{【】}{()【【】()()()】,output
-Expected: }
-Predicted: }
-
-Input: input:(【】{,output
-Expected: })
-Predicted: }
-
-Input: input:{{}{}(){}【,output
-Expected: 】}
-Predicted: 】
-
-Input: input:【【】(【】()){【】},output
-Expected: 】
-Predicted: 】
-
-Input: input:{【【【】(),output
-Expected: 】】}
-Predicted: 】
-
-Input: input:()(((【】)),output
-Expected: )
-Predicted: )
-
-Input: input:{【】(()()()()【】{}()),output
-Expected: }
-Predicted: }
-
-Input: input:{{(){}(,output
-Expected: )}}
-Predicted: )
-
-Input: input:{{{}}【({})】{,output
-Expected: }}
-Predicted: }
-
-Input: input:【【】(){}{}{}【】【】,output
-Expected: 】
-Predicted: 】
-
-Input: input:【【】【{}{}【】()()(),output
-Expected: 】】
-Predicted: 】
-
-Input: input:【({}【()【】(){}】),output
-Expected: 】
-Predicted: 】
-
-Input: input:{【】【】【】(),output
-Expected: }
-Predicted: }
-
-Input: input:{【】{,output
-Expected: }}
-Predicted: }
-
-Input: input:【{【{{}(){}}【】,output
-Expected: 】}】
-Predicted: 】
-
-Input: input:()【{【()【】】,output
-Expected: }】
-Predicted: }
-
-Input: input:{【()【】(,output
-Expected: )】}
-Predicted: )
-
-Input: input:【{}()【】,output
-Expected: 】
-Predicted: 】
-
-Input: input:(【】()【】)(()【】【】,output
-Expected: )
-Predicted: )
-
-Input: input:【(){【】【】{}}{}【】【【】,output
-Expected: 】】
-Predicted: 】
-
-Input: input:({}()【】【】){}(,output
-Expected: )
-Predicted: )
-
-Input: input:(()(【(())】),output
-Expected: )
-Predicted: )
-
-Input: input:{({{}{}【】【】()}),output
-Expected: }
-Predicted: }
-
-Input: input:{()(((()),output
-Expected: ))}
-Predicted: )
-
-Input: input:(){}()【】()(,output
-Expected: )
-Predicted: )
-
-Input: input:(()【】【】()(,output
-Expected: ))
-Predicted: )
-
-Input: input:【】(【】【{()}【()】】,output
-Expected: )
-Predicted: )
-
-Input: input:{{{}}【】(){,output
-Expected: }}
-Predicted: }
-
-Input: input:{【【】{}】【【】{},output
-Expected: 】}
-Predicted: 】
-
-Input: input:{{}【】(),output
-Expected: }
-Predicted: }
-
-Input: input:{}(){}{}【】【,output
-Expected: 】
-Predicted: 】
-
-Input: input:{()【】(【{}】{,output
-Expected: })}
-Predicted: }
-
-Input: input:()【【【{}()()()【】】】,output
-Expected: 】
-Predicted: 】
-
-Input: input:{}{【】}【】【{}】({,output
-Expected: })
-Predicted: }
-
-Input: input:{{}【,output
-Expected: 】}
-Predicted: 】
-
-Input: input:{{({{}()}),output
-Expected: }}
-Predicted: }
-
-Input: input:({{}【】()【】}【】(),output
-Expected: )
-Predicted: )
-
-Input: input:{()}【【【【】】】,output
-Expected: 】
-Predicted: 】
-
-Input: input:{({}【】(),output
-Expected: )}
-Predicted: )
-
-Input: input:【(({}【】()【】,output
-Expected: ))】
-Predicted: )
-
-Input: input:({}(【{}】,output
-Expected: ))
-Predicted: )
-
-Input: input:(【】【】【】【】{}(,output
-Expected: ))
-Predicted: )
-
-Input: input:{【】【,output
-Expected: 】}
-Predicted: 】
-
-Input: input:【()(()【,output
-Expected: 】)】
-Predicted: 】
-
-Input: input:{}((){({})},output
-Expected: )
-Predicted: )
-
-Input: input:【【】【】【,output
-Expected: 】】
-Predicted: 】
-
-Input: input:{{}{}【】}(【】())(,output
-Expected: )
-Predicted: )
-
-Input: input:【({}{}),output
-Expected: 】
-Predicted: 】
-
-Input: input:{}【{【()()【】【】】()},output
-Expected: 】
-Predicted: 】
-
-Input: input:【】{}【】(){,output
-Expected: }
-Predicted: }
-
-Input: input:{{()【】{}{}}{}({})(,output
-Expected: )}
-Predicted: }
-
-Input: input:【(){}】【【】()】【{,output
-Expected: }】
-Predicted: }
-
-Input: input:((【((){}),output
-Expected: 】))
-Predicted: 】
-
-Input: input:{{}【】【{}【】()】{()(),output
-Expected: }}
-Predicted: }
-
-Input: input:{{}【】【】{,output
-Expected: }}
-Predicted: }
-
-Input: input:({}(){}{}【】(){}【,output
-Expected: 】)
-Predicted: 】
-
-Input: input:【】【】【】()()()【】{}{,output
-Expected: }
-Predicted: }
-
-Input: input:({【】}【(){,output
-Expected: }】)
-Predicted: }
-
-Input: input:{{{}【】()()()()()(,output
-Expected: )}}
-Predicted: )
-
-Input: input:【【】【】【((()){【】()}),output
-Expected: 】】
-Predicted: 】
-
-Input: input:{{}【{【】}【】】,output
-Expected: }
-Predicted: }
-
-Input: input:{【】{{{}()【】{}},output
-Expected: }}
-Predicted: }
-
-Input: input:【({}){,output
-Expected: 】}
-Predicted: }
-
-Input: input:【【{【】}【()】,output
-Expected: 】】
-Predicted: 】
-
-Input: input:({}(){},output
-Expected: )
-Predicted: )
-
-Input: input:{(({}))({{}}【】),output
-Expected: }
-Predicted: }
-
-Input: input:{(()()【】){,output
-Expected: }}
-Predicted: }
-
-Input: input:【】({()}(((),output
-Expected: )))
-Predicted: )
-
-Input: input:{【{}【()】({}{}{})】,output
-Expected: }
-Predicted: }
-
-Input: input:{【】({({}()【】【】),output
-Expected: })}
-Predicted: }
-
-Input: input:({{}({})【【】】,output
-Expected: })
-Predicted: }
-
-Input: input:{{}{,output
-Expected: }}
-Predicted: }
-
-Input: input:【()【】【】【】{}(),output
-Expected: 】
-Predicted: 】
-
-Input: input:【(){{}{}【】}{(),output
-Expected: }】
-Predicted: }
-
-Input: input:{((【()()()【】【】】)),output
-Expected: }
-Predicted: }
-
-Input: input:(【】()【{}】(,output
-Expected: ))
-Predicted: )
-
-Input: input:【{}【】(,output
+Input: input:【((),output
 Expected: )】
 Predicted: )
 
-Input: input:{【((){}({}())【】)】,output
+Input: input:【】()()【】()(){,output
 Expected: }
 Predicted: }
 
-Input: input:(()((【】)),output
-Expected: )
-Predicted: )
-
-Input: input:【{{}}【】{{},output
-Expected: 】}
+Input: input:()(()()()(){}{,output
+Expected: })
 Predicted: }
 
-Input: input:{(()【】())()(,output
-Expected: )}
-Predicted: }
-
-Input: input:{}{}({},output
-Expected: )
-Predicted: )
-
-Input: input:{(){}(),output
+Input: input:{{}()【】{}{}{},output
 Expected: }
 Predicted: }
 
-Input: input:{【】{}(),output
-Expected: }
-Predicted: }
-
-Input: input:{}【()()】【【】,output
+Input: input:{()}【{}(),output
 Expected: 】
 Predicted: 】
 
-Input: input:【(({}{【】},output
-Expected: ))】
-Predicted: )
-
-Input: input:(){{}【】【】{}{}{}【】,output
+Input: input:【】({【{}】()}){{}{}}{,output
 Expected: }
 Predicted: }
 
-Input: input:【【【】】】(({}【】{})【()】,output
-Expected: )
-Predicted: )
+Input: input:【】{【,output
+Expected: 】}
+Predicted: 】
 
-Input: input:【】【{,output
+Input: input:(){【{}{}【】,output
+Expected: 】}
+Predicted: 】
+
+Input: input:【】{【()【【【】】】,output
+Expected: 】}
+Predicted: 】
+
+Input: input:【{}【】{}】【{,output
 Expected: }】
 Predicted: }
 
-Input: input:【【()({【】},output
+Input: input:(【{},output
+Expected: 】)
+Predicted: 】
+
+Input: input:((【】())【{}(){}】{,output
+Expected: })
+Predicted: }
+
+Input: input:({【【】(){}】{},output
+Expected: })
+Predicted: }
+
+Input: input:(){{()【】,output
+Expected: }}
+Predicted: }
+
+Input: input:【(){}{}】{【】【,output
+Expected: 】}
+Predicted: 】
+
+Input: input:【【】】(){【】,output
+Expected: }
+Predicted: }
+
+Input: input:{【】【】【】{}{}【】(),output
+Expected: }
+Predicted: }
+
+Input: input:{{【】}【(){},output
+Expected: }】
+Predicted: 】
+
+Input: input:(【【{(){}}{}【【】】】,output
+Expected: 】)
+Predicted: 】
+
+Input: input:【(){}()【】,output
+Expected: 】
+Predicted: 】
+
+Input: input:()(){}{}【】【】(,output
+Expected: )
+Predicted: )
+
+Input: input:【【【()】【】】,output
+Expected: 】
+Predicted: 】
+
+Input: input:【()【(){}】【(,output
 Expected: )】】
 Predicted: )
 
-Input: input:【()()】【(){},output
+Input: input:{}{}【】()【】【,output
 Expected: 】
 Predicted: 】
 
-Input: input:{}【】(,output
+Input: input:(){}()(){}【】{,output
+Expected: }
+Predicted: }
+
+Input: input:【【{(()){}}】,output
+Expected: 】
+Predicted: 】
+
+Input: input:()【【()】】{((){}),output
+Expected: }
+Predicted: }
+
+Input: input:【【{}】】((【】),output
 Expected: )
 Predicted: )
 
-Input: input:【】()【【,output
-Expected: 】】
+Input: input:【(){,output
+Expected: }】
+Predicted: }
+
+Input: input:(【((())【【】{}】),output
+Expected: 】)
 Predicted: 】
 
-Input: input:({【(()()【】()【】),output
-Expected: 】})
+Input: input:{(【】{}(){}){},output
+Expected: }
+Predicted: }
+
+Input: input:()【【【】{}】,output
+Expected: 】
 Predicted: 】
 
-Input: input:((【(){()()()【】()},output
-Expected: 】))
-Predicted: 】
+Input: input:{(){(),output
+Expected: }}
+Predicted: }
 
-Input: input:()(【】(【】【】【】,output
-Expected: ))
-Predicted: )
-
-Input: input:{((,output
-Expected: ))}
-Predicted: )
-
-Input: input:{{}【({【】(){}}),output
+Input: input:{{}{}【,output
 Expected: 】}
 Predicted: 】
 
-Input: input:【】【【【】{}{}()】,output
-Expected: 】
-Predicted: 】
-
-Input: input:({【()【】{}】,output
-Expected: })
-Predicted: }
-
-Input: input:【()(,output
-Expected: )】
-Predicted: )
-
-Input: input:{{【,output
-Expected: 】}}
-Predicted: 】
-
-Input: input:(【】【【()】】((【】,output
-Expected: )))
-Predicted: )
-
-Input: input:【【【{{}()},output
-Expected: 】】】
-Predicted: 】
-
-Input: input:{【{},output
-Expected: }】
-Predicted: 】
-
-Input: input:({}()【】()()【】,output
-Expected: )
-Predicted: )
-
-Input: input:【{}{}【】【(【】【】),output
-Expected: 】】
-Predicted: 】
-
-Input: input:{【】}【】{【(【()】)(){,output
-Expected: }】}
-Predicted: }
-
-Input: input:【{}{}{}】{{}()()()}{,output
-Expected: }
-Predicted: }
-
-Input: input:(【【】【】】【【】】【【】,output
-Expected: 】)
-Predicted: 】
-
-Input: input:{{{}【】{},output
-Expected: }}
-Predicted: }
-
-Input: input:()【【{【】【】【】}{}】,output
-Expected: 】
-Predicted: 】
-
-Input: input:{【】(({}()【】)){,output
-Expected: }}
-Predicted: }
-
-Input: input:{【】(,output
-Expected: })
-Predicted: )
-
-Input: input:【】{({},output
+Input: input:(){((){})【】【】}{({},output
 Expected: )}
 Predicted: )
 
-Input: input:【】{}{{},output
-Expected: }
-Predicted: }
-
-Input: input:【{}】{()(),output
-Expected: }
-Predicted: }
-
-Input: input:【{}{{}()}{【】【】},output
-Expected: 】
-Predicted: }
-
-Input: input:(({{}{}}{【】{}()}),output
-Expected: )
-Predicted: )
-
-Input: input:【()(){}【】【】{},output
-Expected: 】
-Predicted: 】
-
-Input: input:【{}{}【】,output
-Expected: 】
-Predicted: 】
-
-Input: input:{{{}{}}}(【{}】)(,output
-Expected: )
-Predicted: )
-
-Input: input:{{}()【】,output
-Expected: }
-Predicted: }
-
-Input: input:【】{()({()})【【{}{},output
-Expected: 】】}
-Predicted: 】
-
-Input: input:【】()【】【{,output
-Expected: }】
-Predicted: }
-
-Input: input:{}(()【】{}{})((),output
-Expected: )
-Predicted: )
-
-Input: input:【({(())}),output
-Expected: 】
-Predicted: 】
-
-Input: input:{}{((【{}【】{}】{})),output
-Expected: }
-Predicted: }
-
-Input: input:(【】)({})【{}】({}()(,output
+Input: input:(()【】{}【】{}()(,output
 Expected: ))
 Predicted: )
 
-Input: input:【{}】{(),output
-Expected: }
-Predicted: }
+Input: input:{}(【({}{})】【【{},output
+Expected: 】】)
+Predicted: 】
 
-Input: input:{【】{}{}{}()()【】{},output
-Expected: }
-Predicted: }
+Input: input:{【【()【】【】{}【】】,output
+Expected: 】}
+Predicted: 】
 
-Input: input:【】(){}(【【【【】【】{}】】,output
-Expected: 】)
+Input: input:(({}()(){}),output
+Expected: )
 Predicted: )
 
