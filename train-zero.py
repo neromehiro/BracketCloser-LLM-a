@@ -11,6 +11,7 @@ from modules.custom_layers import CustomMultiHeadAttention
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import optuna_data_generator  # このインポートを追加
 from tensorflow.keras.optimizers import Adam  # 追加
+from modules.evaluate import main as evaluate_main
 
 
 # 日本時間のタイムゾーンを設定
@@ -52,16 +53,16 @@ TRAINING_MODES = {
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
     "op": {  
-        "learning_rate": 0.0001,
-        "batch_size": 128,
-        "regularizer_type": "l2",
-        "regularizer_value": 1e-6,
-        "embedding_dim": 512,
-        "gru_units": 512,
-        "dropout_rate": 0.1,
-        "recurrent_dropout_rate": 0.1,
-        "epochs": 1000,
-        "num_files": 10 
+        "learning_rate": 0.00005,  # 小さな学習率で安定性を向上
+        "batch_size": 128,  # 小さなバッチサイズでノイズを減らし、振動を抑える
+        "regularizer_type": "l2",  # l2正則化を使用して過学習を防ぐ
+        "regularizer_value": 1e-5,  # 正則化の強さを少し上げる
+        "embedding_dim": 256,  # 埋め込み層の次元を減らして学習の効率を向上
+        "gru_units": 256,  # GRUユニットの数を減らして計算コストを下げる
+        "dropout_rate": 0.2,  # ドロップアウト率を少し上げて過学習を防ぐ
+        "recurrent_dropout_rate": 0.2,  # リカレントドロップアウト率を少し上げて過学習を防ぐ
+        "epochs": 500,  # エポック数を減らして学習時間を短縮
+        "num_files": 15  # より多くのファイルを使用して多様なデータを学習
     }
 }
 
@@ -213,6 +214,8 @@ def main():
     with open(training_info_path, "w") as info_file:
         json.dump(initial_metadata, info_file, indent=4)
 
+    avg_accuracies = []
+    
     for epoch in range(training_mode["epochs"]):
         print(f"Starting epoch {epoch + 1}/{training_mode['epochs']}")
 
@@ -277,6 +280,14 @@ def main():
                         }
                         print(f"Epoch log: {epoch_data}")
                         full_history.append(epoch_data)
+                        
+            if os.path.exists(model_path):
+                avg_accuracy = evaluate_main(model_path)
+                avg_accuracies.append(avg_accuracy)
+                print(f"Evaluation completed. Average accuracy: {avg_accuracy:.2f}%")
+            else:
+                avg_accuracies.append(None)
+                print(f"Model file does not exist at path: {model_path}")
 
         # エポック終了後にトレーニング履歴をプロット
         plot_data = {
@@ -284,6 +295,7 @@ def main():
             'val_loss': [epoch['val_loss'] for epoch in full_history],
             'accuracy': [epoch['accuracy'] for epoch in full_history],
             'val_accuracy': [epoch['val_accuracy'] for epoch in full_history],
+            'eval_accuracy': avg_accuracies
         }
         print(f"Plot data: {plot_data}")
         plot_training_history(
@@ -293,8 +305,11 @@ def main():
             batch_size=training_mode["batch_size"],
             learning_rate=learning_rate,
             num_files=training_mode["num_files"],
-            dataset_size=dataset_size
+            dataset_size=dataset_size,
+            avg_accuracy=sum(avg for avg in avg_accuracies if avg is not None) / len(avg_accuracies) if avg_accuracies else 0  # 平均正答率を追加
         )
+        print(f"Plot data: {plot_data}")
+
 
         all_input_sequences = []
         all_target_tokens = []

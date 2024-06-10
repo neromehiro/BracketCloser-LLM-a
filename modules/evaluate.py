@@ -9,9 +9,8 @@ from modules.custom_layers import CustomMultiHeadAttention
 from modules.data_generator import generate_test_data, preprocess_and_save_dataset
 
 
-# ログ設定
-# logging.basicConfig(filename='debug_log.txt', level=logging.DEBUG, 
-#                     format='%(asctime)s %(levelname)s: %(message)s')
+
+
 
 # ディレクトリ設定
 dirs = {
@@ -131,7 +130,7 @@ def evaluate_model_instance(model_path, test_data, model_type):
         results = []
         for input_seq, expected_output_seq in input_output_pairs:
             preprocessed_input = pad_sequences([preprocess_input(input_seq)], maxlen=max_seq_length, padding='post')
-            prediction = model.predict(preprocessed_input)
+            prediction = model.predict(preprocessed_input, verbose=0)  # verbose=0を追加
             predicted_output = decode_output(np.argmax(prediction, axis=-1).flatten().tolist())
             correct_predictions += int(predicted_output == expected_output_seq)
             results.append((input_seq, expected_output_seq, predicted_output))
@@ -145,9 +144,13 @@ def evaluate_model_instance(model_path, test_data, model_type):
         logging.error(f"Error in evaluate_model_instance: {e}")
         raise e
 
-def evaluate_model(model_path, model_type):
-    # 200個のテストデータセットを生成
-    test_dataset = generate_test_data(200)
+def evaluate_model(model_path, model_type, num_test_samples):
+    if num_test_samples == 0:
+        print("Skipping evaluation as num_test_samples is set to 0.")
+        return 0
+
+    # num_test_samples個のテストデータセットを生成
+    test_dataset = generate_test_data(num_test_samples)
     preprocess_and_save_dataset(test_dataset, f"temp_test_dataset.json", max_seq_length=30)
     test_data_path = os.path.join(dirs["original"], "temp_test_dataset.json")
     test_data = load_dataset(test_data_path)
@@ -162,10 +165,14 @@ def evaluate_model(model_path, model_type):
     
     return accuracy * 100  # 100点満点で評価
 
-def perform_multiple_trials(model_path, model_type, num_trials=10):
+def perform_multiple_trials(model_path, model_type, num_trials, num_test_samples):
+    if num_trials == 0:
+        print("Skipping trials as num_trials is set to 0.")
+        return 0
+
     trial_results = []
     for _ in range(num_trials):
-        trial_accuracy = evaluate_model(model_path, model_type)
+        trial_accuracy = evaluate_model(model_path, model_type, num_test_samples)
         trial_results.append(trial_accuracy)
     return np.mean(trial_results)
 
@@ -195,10 +202,11 @@ def main(model_save_path):
     model_type = get_model_type_from_model(model)
     logging.info(f"Model type: {model_type}")
 
-    # 評価回数を設定
-    num_trials = 5  # 必要に応じて変更
+    # テストデータの数と評価回数を設定
+    NUM_TEST_SAMPLES = 200  # 0にするとスキップされます
+    NUM_TRIALS = 5  # 0にするとスキップされます
 
     # モデルの評価
-    average_accuracy = perform_multiple_trials(model_save_path, model_type, num_trials)
+    average_accuracy = perform_multiple_trials(model_save_path, model_type, NUM_TRIALS, NUM_TEST_SAMPLES)
     print(f"モデルの平均精度: {average_accuracy:.2f}%")
     return average_accuracy
