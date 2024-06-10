@@ -4,13 +4,14 @@ import numpy as np
 import tensorflow as tf
 import logging
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.sequence import pad_sequences  # 追加
-from modules.custom_layers import CustomMultiHeadAttention
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from typing import List
 from modules.data_generator import generate_test_data, preprocess_and_save_dataset
+from modules.custom_layers import CustomMultiHeadAttention
 
-
-
-
+# ログ設定
+logging.basicConfig(filename='debug_log.txt', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)s: %(message)s')
 
 # ディレクトリ設定
 dirs = {
@@ -42,7 +43,7 @@ def get_model_type_from_model(model) -> str:
             return "gpt"
     return "unknown"
 
-def load_dataset(filepath: str) -> list:
+def load_dataset(filepath: str) -> List[str]:
     if not os.path.exists(filepath):
         print(f"Error: File {filepath} does not exist.")
         return []
@@ -50,7 +51,7 @@ def load_dataset(filepath: str) -> list:
         dataset = json.load(f)
     return dataset
 
-def tokenize_string(string: str) -> list:
+def tokenize_string(string: str) -> List[str]:
     tokens = []
     current_token = ""
     for char in string:
@@ -65,20 +66,20 @@ def tokenize_string(string: str) -> list:
         tokens.append(current_token)
     return tokens
 
-def preprocess_input(input_seq: str) -> list:
+def preprocess_input(input_seq: str) -> List[int]:
     tokens = tokenize_string(input_seq)
-    logging.debug(f"Tokenized string: {tokens}")  # デバッグ: トークン化された文字列をログに記録
+    logging.debug(f"Tokenized string: {tokens}")
     return [token2id[token] for token in tokens if token in token2id]
 
-def decode_output(output_seq: list) -> str:
+def decode_output(output_seq: List[int]) -> str:
     decoded = "".join([id2token[id] for id in output_seq if id in id2token])
-    logging.debug(f"Decoded output: {decoded}")  # デバッグ: デコードされた出力をログに記録
+    logging.debug(f"Decoded output: {decoded}")
     return decoded
 
 def split_input_output(data):
     input_output_pairs = []
     for item in data:
-        if isinstance(item, str):  # itemが文字列であることを確認
+        if isinstance(item, str):
             input_seq = item.split(",output:")[0] + ",output"
             output_seq = item.split(",output:")[1]
             input_output_pairs.append((input_seq, output_seq))
@@ -86,127 +87,101 @@ def split_input_output(data):
             logging.error(f"Invalid data format: {item}")
     return input_output_pairs
 
-def load_training_info(model_dir):
-    training_info_path = os.path.join(model_dir, "training_info.json")
-    if os.path.exists(training_info_path):
-        with open(training_info_path, "r") as f:
-            training_info = json.load(f)
-        return training_info
+def evaluate_model(model, test_data, model_type, model_save_path):
+    if not test_data:
+        raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
+    
+    correct_predictions = 0
+    results = []
+
+    input_shape = model.input_shape
+    if isinstance(input_shape, list):
+        max_seq_length = input_shape[0][1]
     else:
-        raise FileNotFoundError(f"Training info file not found in {model_dir}")
+        max_seq_length = input_shape[1]
 
-def evaluate_model_instance(model_path, test_data, model_type):
-    try:
-        model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
-        
-        # モデルディレクトリからトレーニング設定を読み込む
-        model_dir = os.path.dirname(model_path)
-        training_info = load_training_info(model_dir)
-        
-        # モデルの手動コンパイル
-        try:
-            model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=training_info['learning_rate']), 
-                          loss='categorical_crossentropy', 
-                          metrics=['accuracy'])
-            logging.info(f"Model compiled successfully with learning rate {training_info['learning_rate']}")
-        except Exception as e:
-            logging.error(f"Model compilation failed: {e}")
-            raise e
-        
-        correct_predictions = 0
-        input_shape = model.input_shape
-        if isinstance(input_shape, list):
-            max_seq_length = input_shape[0][1]
+    input_output_pairs = split_input_output(test_data)
+    
+    if len(input_output_pairs) == 0:
+        raise ValueError("No input-output pairs found in the test data.")
+
+    for idx, (input_seq, expected_output) in enumerate(input_output_pairs):
+        preprocessed_input = preprocess_input(input_seq)
+        preprocessed_input_padded = pad_sequences(
+            [preprocessed_input], maxlen=max_seq_length, padding='post', value=0
+        )[0]
+
+        expected_output_tokens = preprocess_input(expected_output)
+        predicted_output_ids = []
+        for i in range(len(expected_output_tokens)):
+            if isinstance(model.input, list):
+                model_inputs = [np.array([preprocessed_input_padded]), np.array([preprocessed_input_padded])]
+            else:
+                model_inputs = np.array([preprocessed_input_padded])
+
+            predicted_output = model.predict(model_inputs, verbose=0) 
+            predicted_id = np.argmax(predicted_output[0], axis=-1)
+            predicted_output_ids.append(predicted_id)
+
+            if len(preprocessed_input_padded) < max_seq_length:
+                preprocessed_input_padded = np.concatenate([preprocessed_input_padded, [predicted_id]])
+            else:
+                preprocessed_input_padded = np.roll(preprocessed_input_padded, -1)
+                preprocessed_input_padded[-1] = predicted_id
+
+        predicted_output = decode_output(predicted_output_ids)
+        expected_output_reconstructed = decode_output(expected_output_tokens)
+
+        if predicted_output == expected_output_reconstructed:
+            results.append(f"問題{idx + 1} 正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            correct_predictions += 1
         else:
-            max_seq_length = input_shape[1]
+            results.append(f"問題{idx + 1} 不正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
 
-        input_output_pairs = split_input_output(test_data)
-        
-        if len(input_output_pairs) == 0:
-            raise ValueError("No input-output pairs found in the test data.")
-        
-        logging.info(f"Evaluating {len(input_output_pairs)} input-output pairs")
-        
-        results = []
-        for input_seq, expected_output_seq in input_output_pairs:
-            preprocessed_input = pad_sequences([preprocess_input(input_seq)], maxlen=max_seq_length, padding='post')
-            prediction = model.predict(preprocessed_input, verbose=0)  # verbose=0を追加
-            predicted_output = decode_output(np.argmax(prediction, axis=-1).flatten().tolist())
-            correct_predictions += int(predicted_output == expected_output_seq)
-            results.append((input_seq, expected_output_seq, predicted_output))
-        
-        accuracy = correct_predictions / len(input_output_pairs)
-        logging.info(f"Accuracy: {accuracy}")
-        
-        return accuracy, results
-    
-    except Exception as e:
-        logging.error(f"Error in evaluate_model_instance: {e}")
-        raise e
+    accurate_percentage = correct_predictions / len(input_output_pairs) * 100
 
-def evaluate_model(model_path, model_type, num_test_samples):
-    if num_test_samples == 0:
-        print("Skipping evaluation as num_test_samples is set to 0.")
-        return 0
+    result_filename = f"evaluation_result_{accurate_percentage:.2f}%.txt"
+    evaluation_result_path = "evaluation_result.txt"
+    with open(evaluation_result_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(results))
+        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
 
-    # num_test_samples個のテストデータセットを生成
-    test_dataset = generate_test_data(num_test_samples)
-    preprocess_and_save_dataset(test_dataset, f"temp_test_dataset.json", max_seq_length=30)
-    test_data_path = os.path.join(dirs["original"], "temp_test_dataset.json")
-    test_data = load_dataset(test_data_path)
-    
-    # 評価を実行
-    accuracy, results = evaluate_model_instance(model_path, test_data, model_type)
-    
-    # 結果を保存
-    with open("evaluation_results.txt", "w", encoding="utf-8") as f:
-        for input_seq, expected_output_seq, predicted_output in results:
-            f.write(f"Input: {input_seq}\nExpected: {expected_output_seq}\nPredicted: {predicted_output}\n\n")
-    
-    return accuracy * 100  # 100点満点で評価
+    result_dir = os.path.join(os.path.dirname(model_save_path), "evaluation_results")
+    os.makedirs(result_dir, exist_ok=True)
 
-def perform_multiple_trials(model_path, model_type, num_trials, num_test_samples):
-    if num_trials == 0:
-        print("Skipping trials as num_trials is set to 0.")
-        return 0
+    model_specific_result_path = os.path.join(result_dir, result_filename)
+    with open(model_specific_result_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(results))
+        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
 
-    trial_results = []
-    for _ in range(num_trials):
-        trial_accuracy = evaluate_model(model_path, model_type, num_test_samples)
-        trial_results.append(trial_accuracy)
-    return np.mean(trial_results)
+    return accurate_percentage
 
-def main(model_save_path):
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
-
+def main(model_path, num_test_samples=100):
     # モデルのロード
-    model = load_model(model_save_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
-    
-    # モデルディレクトリからトレーニング設定を読み込む
-    model_dir = os.path.dirname(model_save_path)
-    training_info = load_training_info(model_dir)
-    
-    # モデルの手動コンパイル
-    try:
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=training_info['learning_rate']), 
-                      loss='categorical_crossentropy', 
-                      metrics=['accuracy'])
-        logging.info(f"Model compiled successfully with learning rate {training_info['learning_rate']}")
-    except Exception as e:
-        logging.error(f"Model compilation failed: {e}")
-        print(f"Model compilation failed: {e}")
-        return
+    model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 
     # モデルタイプの取得
     model_type = get_model_type_from_model(model)
     logging.info(f"Model type: {model_type}")
 
-    # テストデータの数と評価回数を設定
-    NUM_TEST_SAMPLES = 200  # 0にするとスキップされます
-    NUM_TRIALS = 5  # 0にするとスキップされます
+    # モデルのコンパイル
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    # テストデータの生成
+    test_dataset = generate_test_data(num_test_samples)
+
+    # テストデータの前処理と保存
+    preprocess_and_save_dataset(test_dataset, "test_bracket_dataset.json", max_seq_length=30)
+
+    # テストデータの保存パス
+    test_data_path = os.path.join(dirs["original"], "test_bracket_dataset.json")
+
+    # テストデータのロード
+    test_data = load_dataset(test_data_path)
 
     # モデルの評価
-    average_accuracy = perform_multiple_trials(model_save_path, model_type, NUM_TRIALS, NUM_TEST_SAMPLES)
-    print(f"モデルの平均精度: {average_accuracy:.2f}%")
-    return average_accuracy
+    accuracy = evaluate_model(model, test_data, model_type, model_path)
+    print(f"モデルの精度: {accuracy:.2f}%")
+    print(f"評価結果は evaluation_result.txt に保存されました。")
+
+    return accuracy

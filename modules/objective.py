@@ -57,48 +57,48 @@ def load_training_data(encode_dir_path, seq_length, num_files=10):
 
 def suggest_model_params(trial, architecture):
     params = {
-        "learning_rate": trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
-        "batch_size": trial.suggest_int("batch_size", 64, 512),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),  # 学習率の範囲を適切に設定
+        "batch_size": trial.suggest_int("batch_size", 32, 128),  # バッチサイズの範囲を調整
         "regularizer_type": trial.suggest_categorical("regularizer_type", ['l1', 'l2']),
-        "regularizer_value": trial.suggest_float("regularizer_value", 1e-5, 1e-1, log=True)
+        "regularizer_value": trial.suggest_float("regularizer_value", 1e-6, 1e-3, log=True)  # 正則化の範囲を調整
     }
 
     if architecture == "gru":
         params.update({
             "embedding_dim": trial.suggest_int("embedding_dim", 64, 128),
-            "gru_units": trial.suggest_int("gru_units", 64, 128),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.4),
-            "recurrent_dropout_rate": trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4)
+            "gru_units": trial.suggest_int("gru_units", 64, 256),  # GRUユニットの範囲を広げる
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.3),  # ドロップアウト率の範囲を適切に設定
+            "recurrent_dropout_rate": trial.suggest_float("recurrent_dropout_rate", 0.1, 0.3)  # リカレントドロップアウト率の範囲を適切に設定
         })
     elif architecture == "transformer":
         params.update({
-            "embedding_dim": trial.suggest_int("embedding_dim", 64, 256),
-            "num_heads": trial.suggest_int("num_heads", 2, 8),
-            "ffn_units": trial.suggest_int("ffn_units", 256, 512),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.05, 0.4)
+            "embedding_dim": trial.suggest_int("embedding_dim", 64, 256),  # 埋め込み次元の範囲を調整
+            "num_heads": trial.suggest_int("num_heads", 2, 8),  # ヘッド数の範囲を適切に設定
+            "ffn_units": trial.suggest_int("ffn_units", 128, 512),  # FFNユニットの範囲を適切に設定
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.3)  # ドロップアウト率の範囲を適切に設定
         })
     elif architecture == "lstm":
         params.update({
             "embedding_dim": trial.suggest_int("embedding_dim", 64, 128),
-            "lstm_units": trial.suggest_int("lstm_units", 64, 128),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.4),
-            "recurrent_dropout_rate": trial.suggest_float("recurrent_dropout_rate", 0.1, 0.4),
-            "num_layers": trial.suggest_int("num_layers", 1, 3)
+            "lstm_units": trial.suggest_int("lstm_units", 64, 256),  # LSTMユニットの範囲を広げる
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.3),  # ドロップアウト率の範囲を適切に設定
+            "recurrent_dropout_rate": trial.suggest_float("recurrent_dropout_rate", 0.1, 0.3),  # リカレントドロップアウト率の範囲を適切に設定
+            "num_layers": trial.suggest_int("num_layers", 1, 3)  # レイヤー数の範囲を適切に設定
         })
     elif architecture == "bert":
         params.update({
-            "embedding_dim": trial.suggest_int("embedding_dim", 64, 128),
-            "num_heads": trial.suggest_int("num_heads", 2, 4),
-            "ffn_units": trial.suggest_int("ffn_units", 128, 256),
-            "num_layers": trial.suggest_int("num_layers", 1, 3),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.4)
+            "embedding_dim": trial.suggest_int("embedding_dim", 64, 256),  # 埋め込み次元の範囲を調整
+            "num_heads": trial.suggest_int("num_heads", 2, 8),  # ヘッド数の範囲を適切に設定
+            "ffn_units": trial.suggest_int("ffn_units", 128, 512),  # FFNユニットの範囲を適切に設定
+            "num_layers": trial.suggest_int("num_layers", 1, 3),  # レイヤー数の範囲を適切に設定
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.3)  # ドロップアウト率の範囲を適切に設定
         })
     elif architecture == "gpt":
         params.update({
-            "embedding_dim": trial.suggest_int("embedding_dim", 64, 128),
-            "num_heads": trial.suggest_int("num_heads", 2, 4),
-            "ffn_units": trial.suggest_int("ffn_units", 128, 256),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.4)
+            "embedding_dim": trial.suggest_int("embedding_dim", 64, 256),  # 埋め込み次元の範囲を調整
+            "num_heads": trial.suggest_int("num_heads", 2, 8),  # ヘッド数の範囲を適切に設定
+            "ffn_units": trial.suggest_int("ffn_units", 128, 512),  # FFNユニットの範囲を適切に設定
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.3)  # ドロップアウト率の範囲を適切に設定
         })
 
     return params

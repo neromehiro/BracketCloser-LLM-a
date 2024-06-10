@@ -61,7 +61,7 @@ TRAINING_MODES = {
         "gru_units": 256,  # GRUユニットの数を減らして計算コストを下げる
         "dropout_rate": 0.2,  # ドロップアウト率を少し上げて過学習を防ぐ
         "recurrent_dropout_rate": 0.2,  # リカレントドロップアウト率を少し上げて過学習を防ぐ
-        "epochs": 500,  # エポック数を減らして学習時間を短縮
+        "epochs": 10,  # エポック数を減らして学習時間を短縮
         "num_files": 15  # より多くのファイルを使用して多様なデータを学習
     }
 }
@@ -217,7 +217,7 @@ def main():
     avg_accuracies = []
     
     for epoch in range(training_mode["epochs"]):
-        print(f"Starting epoch {epoch + 1}/{training_mode['epochs']}")
+        print(f"\nStarting epoch {epoch + 1}/{training_mode['epochs']}")
 
         # データセットの生成
         dataset_path = temp_save_dir
@@ -297,7 +297,7 @@ def main():
             'val_accuracy': [epoch['val_accuracy'] for epoch in full_history],
             'eval_accuracy': avg_accuracies
         }
-        print(f"Plot data: {plot_data}")
+        # print(f"Plot data: {plot_data}")
         plot_training_history(
             plot_data,
             save_path=os.path.join(temp_save_dir, "training_history.png"),
@@ -308,7 +308,6 @@ def main():
             dataset_size=dataset_size,
             avg_accuracy=sum(avg for avg in avg_accuracies if avg is not None) / len(avg_accuracies) if avg_accuracies else 0  # 平均正答率を追加
         )
-        print(f"Plot data: {plot_data}")
 
 
         all_input_sequences = []

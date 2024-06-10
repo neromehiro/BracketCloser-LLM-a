@@ -32,7 +32,7 @@ from modules.custom_layers import CustomMultiHeadAttention
 # model_save_path = 'models/gru_20240609_181322_181m/best_model_epoch_200.h5' # 点数：78 76 76 83 70 66 75 データセットを毎回のepochで更新 
 # model_save_path = 'models/gru_20240609_232711_232m/best_model_epoch_1_pid_40460.h5' # 点数： 74 71 73
 # model_save_path = 'models/20240610_111231_gru_temp/best_model.h5' # 点数： 69 61 69 77 61 62 66 モデルを大きくした例
-model_save_path = 'models/gru_20240608_145935_127m/best_model.h5' # 点数：
+model_save_path = 'models/20240610_150718_gru_temp/best_model.h5' # 点数：72 78
 # model_save_path = '' # 点数：
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
