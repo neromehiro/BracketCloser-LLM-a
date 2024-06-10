@@ -50,16 +50,16 @@ TRAINING_MODES = {
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
     "op": {  
-        "learning_rate": 0.0031535421928088523,
-        "batch_size": 205,
+        "learning_rate": 0.0001,
+        "batch_size": 128,
         "regularizer_type": "l2",
-        "regularizer_value": 1.1973670625410778e-05,
-        "embedding_dim": 127,
-        "gru_units": 90,
-        "dropout_rate": 0.10421276428973633,
-        "recurrent_dropout_rate": 0.21222279862119903,
+        "regularizer_value": 1e-6,
+        "embedding_dim": 512,
+        "gru_units": 512,
+        "dropout_rate": 0.1,
+        "recurrent_dropout_rate": 0.1,
         "epochs": 1000,
-        "num_files": 10  # 適切な数値を追加してください
+        "num_files": 10 
     }
 }
 
