@@ -7,3 +7,5 @@ __pycache__.DS_Store
 .env
 components/
 debug_log.txt
+__pycache__/
+modules/__pycache__/

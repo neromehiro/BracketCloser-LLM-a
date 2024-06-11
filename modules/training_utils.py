@@ -29,7 +29,7 @@ class TimeHistory(Callback):
     def on_epoch_end(self, batch, logs={}):
         self.times.append(time.time() - self.epoch_time_start)      
 
-
+# train.py train-zero.py用
 class CustomTrainingHistory(tf.keras.callbacks.Callback):
     def __init__(self, model_path, **kwargs):
         super().__init__()
@@ -71,6 +71,7 @@ class TrainingHistory(tf.keras.callbacks.Callback):
                 self.best_loss = metadata.get('best_loss', float('inf'))
         except IOError as e:
             print(f"Failed to load metadata: {e}")
+
 # TRAINING_MODES に含まれる変数を渡すための変更
 def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, **kwargs):
     # 他のパラメータを kwargs から取り出す
@@ -430,7 +431,7 @@ def save_final_model_metadata(model_path, history, model_architecture_func, best
 
 
 
-def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size, avg_complete_accuracy, avg_partial_accuracy):
+def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size, avg_complete_accuracy, avg_partial_accuracy, initial_metadata):
     if isinstance(history, dict):
         losses = history.get('loss', [])
         val_losses = history.get('val_loss', [])
@@ -467,6 +468,14 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
     plt.ylabel('Accuracy')
     plt.title('Training and Validation Accuracy')
     plt.legend()
+    
+        # メタデータを右下に表示
+    # メタデータを真ん中のグラフの右下に表示
+    metadata_text = "\n".join([f"{key}: {value}" for key, value in initial_metadata.items() if value is not None])
+    plt.annotate(metadata_text, xy=(1, 0), xycoords='axes fraction', fontsize=7,  # フォントサイズを8に設定
+                xytext=(-10, 10), textcoords='offset points',  # 余白を減らす
+                bbox=dict(boxstyle="round,pad=0.2", edgecolor="black", facecolor="white"),  # パディングを0.2に設定
+                horizontalalignment='right', verticalalignment='bottom')
 
     plt.subplot(1, 3, 3)
     if complete_accuracies:  # complete_accuraciesが空でない場合のみプロット
@@ -488,11 +497,12 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
     plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Average Partial Accuracy')
     plt.legend()
 
+
+
     plt.tight_layout()
     plt.suptitle(f'Epochs: {epochs}, Batch Size: {batch_size}, Learning Rate: {learning_rate}, Files: {num_files}, Dataset Size: {dataset_size}', y=1.05)
     plt.savefig(save_path)
     plt.close()
-
 
 
 def save_final_model_metadata(model_path, history, model_architecture_func, best_params):

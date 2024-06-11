@@ -10,7 +10,10 @@ from modules.training_utils import train_model_single, plot_training_history
 from modules.custom_layers import CustomMultiHeadAttention
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import optuna_data_generator  # このインポートを追加
+from tensorflow.keras.optimizers import Adam  # 追加
+from modules.evaluate import main as evaluate_main
 
+ 
 # 日本時間のタイムゾーンを設定
 japan_timezone = pytz.timezone("Asia/Tokyo")
 
@@ -41,25 +44,28 @@ SHORTCUTS = {
 }
 
 TRAINING_MODES = {
-    "1min": {"epochs": 1, "batch_size": 128, "num_files": 5, "learning_rate": 0.01},
-    "10min": {"epochs": 3, "batch_size": 256, "num_files": 10, "learning_rate": 0.01},
-    "1hour": {"epochs": 7, "batch_size": 512, "num_files": 50, "learning_rate": 0.001},
-    "6hours": {"epochs": 20, "batch_size": 1024, "num_files": 300, "learning_rate": 0.001},
-    "12hours": {"epochs": 40, "batch_size": 1024, "num_files": 600, "learning_rate": 0.001},
-    "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1200, "learning_rate": 0.0005},
-    "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
-    "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
-    "op": {  
-        "batch_size": 64, # アプローチ2 :モデルの複雑度を上げ、データセットを大幅に増やす
-        "learning_rate": 0.0001,
-        "embedding_dim": 128,
-        "gru_units": 256,
-        "dropout_rate": 0.2,
-        "recurrent_dropout_rate": 0.2,
-        "epochs": 1000  # 早期停止を有効にする
-
+    "1min": {"epochs": 1, "batch_size": 128, "num_files": 1, "learning_rate": 0.01},
+    "10min": {"epochs": 3, "batch_size": 256, "num_files": 1, "learning_rate": 0.01},
+    "1hour": {"epochs": 7, "batch_size": 512, "num_files": 1, "learning_rate": 0.001},
+    "6hours": {"epochs": 20, "batch_size": 1024, "num_files": 1, "learning_rate": 0.001},
+    "12hours": {"epochs": 40, "batch_size": 1024, "num_files": 1, "learning_rate": 0.001},
+    "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "2days": {"epochs": 160, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "4days": {"epochs": 320, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "op": { 
+        "learning_rate": 6.078927875211042e-05,
+        "batch_size": 46,
+        "regularizer_type": "l2",
+        "regularizer_value": 2.4139902042339388e-06,
+        "embedding_dim": 203,
+        "num_heads": 8,
+        "ffn_units": 153,
+        "dropout_rate": 0.1538604498254776,
+        "epochs": 300 ,
+        "num_files": 1
     }
 }
+
 
 def select_mode():
     mode = input("Select a mode from: " + ", ".join(TRAINING_MODES.keys()) + "\n")
@@ -159,12 +165,10 @@ def generate_datasets(base_dir, num_samples):
     optuna_data_generator.create_datasets(base_dir, num_datasets, num_samples)
     print(f"Generated {num_samples} samples dataset in {base_dir}")  # デバッグ用に追加
 
-
-
 def main():
     model_architecture_func, training_mode, architecture = select_mode_and_architecture()
     num_samples = int(input("Enter the number of samples for the dataset (100, 300, 500, 800, 1000, 3000, 5000, 10000): ").strip())
-    
+
     # 日本時間のタイムゾーンを設定
     start_time = datetime.now(japan_timezone)
     timestamp = start_time.strftime("%Y%m%d_%H%M%S")
@@ -172,40 +176,10 @@ def main():
     # 一時フォルダ名作成
     temp_save_dir = os.path.join(model_save_path, f"{timestamp}_{architecture}_temp")
     os.makedirs(temp_save_dir, exist_ok=True)
-    
-    # データセットの生成
-    dataset_path = temp_save_dir
-    generate_datasets(dataset_path, num_samples)
-    
+
     max_seq_length = 30  # 最大シーケンス長を設定
 
     vocab_set = set(tokens)
-
-    all_input_sequences = []
-    all_target_tokens = []
-
-    num_files = training_mode.get("num_files", 10)  # デフォルト値を設定
-
-    # データセットの読み込み位置を修正
-    preprocessed_path = os.path.join(dataset_path, "dataset", "preprocessed")
-    print(f"Preprocessed path: {preprocessed_path}")  # デバッグ用に追加
-
-    for dirpath, dirnames, filenames in os.walk(preprocessed_path):
-        print(f"Checking directory: {dirpath}")  # デバッグ用に追加
-        for file in filenames[:num_files]:  # num_filesに基づいてファイル数を制限
-            file_path = os.path.join(dirpath, file)
-            print(f"Processing file: {file_path}")  # デバッグ用に追加
-            encoded_tokens_list = load_dataset(file_path)
-            print(f"Loaded data from {file_path}: {encoded_tokens_list[:2]}...")  # デバッグ用に追加（最初の2つのエントリのみ表示）
-            for encoded_tokens in encoded_tokens_list:
-                input_sequences, target_tokens = prepare_sequences(encoded_tokens, seq_length=max_seq_length)
-                all_input_sequences.extend(input_sequences)
-                all_target_tokens.extend(target_tokens)
-
-    if not all_input_sequences or not all_target_tokens:
-        print("No data for training.")
-        return
-
     vocab_size = len(vocab_set)
 
     # モデルアーキテクチャ関数に渡すためのパラメータを抽出
@@ -213,46 +187,138 @@ def main():
     learning_rate = training_mode["learning_rate"]
     model = model_architecture_func(max_seq_length, vocab_size + 1, learning_rate, **model_params)
 
-    all_input_sequences = np.array(all_input_sequences)
-    all_target_tokens = np.array(all_target_tokens)
+    all_input_sequences = []
+    all_target_tokens = []
 
-    training_info_path = os.path.join(temp_save_dir, "training_info.json")
-
-    with open(training_info_path, "w") as info_file:
-        json.dump({"training_start_time": timestamp}, info_file)
+    # 全エポックの履歴を格納するリスト
+    full_history = []
 
     model_path = os.path.join(temp_save_dir, "best_model.h5")
-    plot_path = os.path.join(temp_save_dir, "training_history.png")
 
-    # モデルの学習
-    history, dataset_size = train_model_single(
-        model,
-        all_input_sequences,
-        all_target_tokens,
-        epochs=training_mode["epochs"],
-        batch_size=training_mode["batch_size"],
-        model_path=model_path,
-        num_files=num_files,
-        learning_rate=learning_rate,
-        architecture=architecture,
-        model_architecture_func=model_architecture_func,
-        **model_params  # 他のパラメータを展開して渡す
-    )
+    # 初期メタデータの設定と保存
+    initial_metadata = {
+        "training_duration_minutes": 0,
+        "epochs": training_mode["epochs"],
+        "batch_size": training_mode["batch_size"],
+        "num_files": training_mode["num_files"],
+        "learning_rate": learning_rate,
+        "dataset_size": num_samples,
+        "model_size_MB": 0,
+        "model_params": model.count_params(),
+        "model_architecture": model_architecture_func.__name__,
+        "training_start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "training_end_time": ""
+    }
 
-    if history:
-        avg_complete_accuracy = sum(acc for acc in complete_accuracies if acc is not None) / len(complete_accuracies) if complete_accuracies else 0
-        avg_partial_accuracy = sum(acc for acc in partial_accuracies if acc is not None) / len(partial_accuracies) if partial_accuracies else 0
+    training_info_path = os.path.join(temp_save_dir, "training_info.json")
+    with open(training_info_path, "w") as info_file:
+        json.dump(initial_metadata, info_file, indent=4)
+
+    complete_accuracies = []
+    partial_accuracies = []
+    
+    for epoch in range(training_mode["epochs"]):
+        print(f"\nStarting epoch {epoch + 1}/{training_mode['epochs']}")
+
+        # データセットの生成
+        dataset_path = temp_save_dir
+        generate_datasets(dataset_path, num_samples)
+
+        # データセットの読み込み
+        preprocessed_path = os.path.join(dataset_path, "dataset", "preprocessed")
+        print(f"Preprocessed path: {preprocessed_path}")
+
+        for dirpath, dirnames, filenames in os.walk(preprocessed_path):
+            for file in filenames[:training_mode["num_files"]]:
+                file_path = os.path.join(dirpath, file)
+                encoded_tokens_list = load_dataset(file_path)
+                for encoded_tokens in encoded_tokens_list:
+                    input_sequences, target_tokens = prepare_sequences(encoded_tokens, seq_length=max_seq_length)
+                    all_input_sequences.append(input_sequences)
+                    all_target_tokens.append(target_tokens)
+
+        if not all_input_sequences or not all_target_tokens:
+            print("No data for training.")
+            return
+
+        all_input_sequences = np.concatenate(all_input_sequences, axis=0)
+        all_target_tokens = np.concatenate(all_target_tokens, axis=0)
+
+        # モデルの学習
+        history, dataset_size = train_model_single(
+            model,
+            all_input_sequences,
+            all_target_tokens,
+            epochs=1,  # 1エポックずつ学習
+            batch_size=training_mode["batch_size"],
+            model_path=model_path,
+            num_files=training_mode["num_files"],
+            learning_rate=learning_rate,
+            architecture=architecture,
+            model_architecture_func=model_architecture_func,
+            **model_params
+        )
+
+        if history:
+            if isinstance(history, dict):
+                for i in range(len(history["loss"])):
+                    epoch_data = {
+                        'loss': history["loss"][i],
+                        'val_loss': history["val_loss"][i] if i < len(history["val_loss"]) else None,
+                        'accuracy': history["accuracy"][i] if i < len(history["accuracy"]) else None,
+                        'val_accuracy': history["val_accuracy"][i] if i < len(history["val_accuracy"]) else None
+                    }
+                    print(f"Epoch log: {epoch_data}")
+                    full_history.append(epoch_data)
+            else:
+                for epoch_log in history:
+                    if isinstance(epoch_log, dict):
+                        epoch_data = {
+                            'loss': epoch_log.get('loss'),
+                            'val_loss': epoch_log.get('val_loss'),
+                            'accuracy': epoch_log.get('accuracy'),
+                            'val_accuracy': epoch_log.get('val_accuracy')
+                        }
+                        print(f"Epoch log: {epoch_data}")
+                        full_history.append(epoch_data)
+                        
+            if os.path.exists(model_path):
+                complete_accuracy, partial_accuracy = evaluate_main(model_path)
+                complete_accuracies.append(complete_accuracy)
+                partial_accuracies.append(partial_accuracy)
+                print(f"Evaluation completed.")
+                print(f"Complete accuracy: {complete_accuracy:.2f}%")
+                print(f"Partial accuracy: {partial_accuracy:.2f}%")
+            else:
+                complete_accuracies.append(None)
+                partial_accuracies.append(None)
+                print(f"Model file does not exist at path: {model_path}")
+
+        # エポック終了後にトレーニング履歴をプロット
+        plot_data = {
+            'loss': [epoch['loss'] for epoch in full_history],
+            'val_loss': [epoch['val_loss'] for epoch in full_history],
+            'accuracy': [epoch['accuracy'] for epoch in full_history],
+            'val_accuracy': [epoch['val_accuracy'] for epoch in full_history],
+            'complete_accuracy': complete_accuracies,
+            'partial_accuracy': partial_accuracies
+        }
+
         plot_training_history(
-            history,
-            save_path=plot_path,
+            plot_data,
+            save_path=os.path.join(temp_save_dir, "training_history.png"),
             epochs=training_mode["epochs"],
             batch_size=training_mode["batch_size"],
             learning_rate=learning_rate,
-            num_files=num_files,
+            num_files=training_mode["num_files"],
             dataset_size=dataset_size,
-            avg_complete_accuracy=avg_complete_accuracy,
-            avg_partial_accuracy=avg_partial_accuracy
+            avg_complete_accuracy=sum(acc for acc in complete_accuracies if acc is not None) / len(complete_accuracies) if complete_accuracies else 0,
+            avg_partial_accuracy=sum(acc for acc in partial_accuracies if acc is not None) / len(partial_accuracies) if partial_accuracies else 0,
+            initial_metadata=initial_metadata  # ここでinitial_metadataを渡す
         )
+
+        all_input_sequences = []
+        all_target_tokens = []
 
     end_time = datetime.now(japan_timezone)
     training_duration = (end_time - start_time).total_seconds() / 60  # 分単位に変換
@@ -261,27 +327,19 @@ def main():
     final_save_dir = os.path.join(model_save_path, f"{architecture}_{timestamp}_{int(training_duration)}m")
     os.rename(temp_save_dir, final_save_dir)
 
-    # パスを更新
-    training_info_path = os.path.join(final_save_dir, "training_info.json")
     model_path = os.path.join(final_save_dir, "best_model.h5")
     plot_path = os.path.join(final_save_dir, "training_history.png")
 
     model_size = os.path.getsize(model_path) / (1024 * 1024)  # MB単位に変換
-    model_params = model.count_params()
 
     metadata = {
         "training_duration_minutes": training_duration,
-        "epochs": training_mode["epochs"],
-        "batch_size": training_mode["batch_size"],
-        "num_files": num_files,
-        "learning_rate": learning_rate,
-        "dataset_size": num_samples,
-        "model_size_MB": model_size,
-        "model_params": model_params,
-        "model_architecture": model_architecture_func.__name__,
-        "training_end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
+        "training_end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "model_size_MB": model_size
     }
 
+    # training_info.json の読み込みと更新
+    training_info_path = os.path.join(final_save_dir, "training_info.json")
     with open(training_info_path, "r") as info_file:
         training_info = json.load(info_file)
     training_info.update(metadata)

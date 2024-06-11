@@ -9,9 +9,6 @@ from typing import List
 from modules.data_generator import generate_test_data, preprocess_and_save_dataset
 from modules.custom_layers import CustomMultiHeadAttention
 
-# ログ設定
-logging.basicConfig(filename='debug_log.txt', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)s: %(message)s')
 
 # ディレクトリ設定
 dirs = {

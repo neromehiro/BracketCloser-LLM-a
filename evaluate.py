@@ -14,9 +14,7 @@ from modules.custom_layers import CustomMultiHeadAttention
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 
-# ログ設定
-logging.basicConfig(filename='debug_log.txt', level=logging.DEBUG, 
-                    format='%(asctime)s %(levelname)s: %(message)s')
+
 
 # ディレクトリ設定
 dirs = {
