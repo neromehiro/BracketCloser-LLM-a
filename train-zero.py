@@ -44,27 +44,28 @@ SHORTCUTS = {
 }
 
 TRAINING_MODES = {
-    "1min": {"epochs": 1, "batch_size": 128, "num_files": 5, "learning_rate": 0.01},
-    "10min": {"epochs": 3, "batch_size": 256, "num_files": 10, "learning_rate": 0.01},
-    "1hour": {"epochs": 7, "batch_size": 512, "num_files": 50, "learning_rate": 0.001},
-    "6hours": {"epochs": 20, "batch_size": 1024, "num_files": 300, "learning_rate": 0.001},
-    "12hours": {"epochs": 40, "batch_size": 1024, "num_files": 600, "learning_rate": 0.001},
-    "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1200, "learning_rate": 0.0005},
-    "2days": {"epochs": 160, "batch_size": 1024, "num_files": 2400, "learning_rate": 0.0005},
-    "4days": {"epochs": 320, "batch_size": 1024, "num_files": 4800, "learning_rate": 0.0005},
-    "op": {  
-        "learning_rate": 0.00005,  # 小さな学習率で安定性を向上
-        "batch_size": 128,  # 小さなバッチサイズでノイズを減らし、振動を抑える
-        "regularizer_type": "l2",  # l2正則化を使用して過学習を防ぐ
-        "regularizer_value": 1e-5,  # 正則化の強さを少し上げる
-        "embedding_dim": 256,  # 埋め込み層の次元を減らして学習の効率を向上
-        "gru_units": 256,  # GRUユニットの数を減らして計算コストを下げる
-        "dropout_rate": 0.2,  # ドロップアウト率を少し上げて過学習を防ぐ
-        "recurrent_dropout_rate": 0.2,  # リカレントドロップアウト率を少し上げて過学習を防ぐ
-        "epochs": 10,  # エポック数を減らして学習時間を短縮
-        "num_files": 15  # より多くのファイルを使用して多様なデータを学習
+    "1min": {"epochs": 1, "batch_size": 128, "num_files": 1, "learning_rate": 0.01},
+    "10min": {"epochs": 3, "batch_size": 256, "num_files": 1, "learning_rate": 0.01},
+    "1hour": {"epochs": 7, "batch_size": 512, "num_files": 1, "learning_rate": 0.001},
+    "6hours": {"epochs": 20, "batch_size": 1024, "num_files": 1, "learning_rate": 0.001},
+    "12hours": {"epochs": 40, "batch_size": 1024, "num_files": 1, "learning_rate": 0.001},
+    "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "2days": {"epochs": 160, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "4days": {"epochs": 320, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
+    "op": { 
+        "learning_rate": 6.078927875211042e-05,
+        "batch_size": 46,
+        "regularizer_type": "l2",
+        "regularizer_value": 2.4139902042339388e-06,
+        "embedding_dim": 203,
+        "num_heads": 8,
+        "ffn_units": 153,
+        "dropout_rate": 0.1538604498254776,
+        "epochs": 300 ,
+        "num_files": 1
     }
 }
+
 
 def select_mode():
     mode = input("Select a mode from: " + ", ".join(TRAINING_MODES.keys()) + "\n")
@@ -214,7 +215,8 @@ def main():
     with open(training_info_path, "w") as info_file:
         json.dump(initial_metadata, info_file, indent=4)
 
-    avg_accuracies = []
+    complete_accuracies = []
+    partial_accuracies = []
     
     for epoch in range(training_mode["epochs"]):
         print(f"\nStarting epoch {epoch + 1}/{training_mode['epochs']}")
@@ -282,11 +284,15 @@ def main():
                         full_history.append(epoch_data)
                         
             if os.path.exists(model_path):
-                avg_accuracy = evaluate_main(model_path)
-                avg_accuracies.append(avg_accuracy)
-                print(f"Evaluation completed. Average accuracy: {avg_accuracy:.2f}%")
+                complete_accuracy, partial_accuracy = evaluate_main(model_path)
+                complete_accuracies.append(complete_accuracy)
+                partial_accuracies.append(partial_accuracy)
+                print(f"Evaluation completed.")
+                print(f"Complete accuracy: {complete_accuracy:.2f}%")
+                print(f"Partial accuracy: {partial_accuracy:.2f}%")
             else:
-                avg_accuracies.append(None)
+                complete_accuracies.append(None)
+                partial_accuracies.append(None)
                 print(f"Model file does not exist at path: {model_path}")
 
         # エポック終了後にトレーニング履歴をプロット
@@ -295,7 +301,8 @@ def main():
             'val_loss': [epoch['val_loss'] for epoch in full_history],
             'accuracy': [epoch['accuracy'] for epoch in full_history],
             'val_accuracy': [epoch['val_accuracy'] for epoch in full_history],
-            'eval_accuracy': avg_accuracies
+            'complete_accuracy': complete_accuracies,
+            'partial_accuracy': partial_accuracies
         }
         # print(f"Plot data: {plot_data}")
         plot_training_history(
@@ -306,7 +313,8 @@ def main():
             learning_rate=learning_rate,
             num_files=training_mode["num_files"],
             dataset_size=dataset_size,
-            avg_accuracy=sum(avg for avg in avg_accuracies if avg is not None) / len(avg_accuracies) if avg_accuracies else 0  # 平均正答率を追加
+            avg_complete_accuracy=sum(acc for acc in complete_accuracies if acc is not None) / len(complete_accuracies) if complete_accuracies else 0,
+            avg_partial_accuracy=sum(acc for acc in partial_accuracies if acc is not None) / len(partial_accuracies) if partial_accuracies else 0
         )
 
 

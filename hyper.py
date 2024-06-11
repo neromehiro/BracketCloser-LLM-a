@@ -234,12 +234,12 @@ def main():
             pruner=HyperbandPruner(min_resource=1, max_resource="auto")
         )
         study.optimize(
-            lambda trial: objective(trial, architecture, training_history.best_loss, ENCODE_DIR_PATH,lambda trial_number: create_trial_folder(save_path, trial_number)[1]
-, study, study_name),
+            lambda trial: objective(trial, architecture, training_history.best_loss, ENCODE_DIR_PATH, lambda trial_number: create_trial_folder(MODEL_SAVE_BASE_PATH, trial_number)[1], study, study_name),
             timeout=time_limit.total_seconds(), 
             n_jobs=n_jobs, 
             callbacks=[callback]
         )
+
 
 
         output_dir = os.path.join(STORAGE_BASE_PATH, study_name)

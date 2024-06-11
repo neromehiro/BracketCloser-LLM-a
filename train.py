@@ -240,6 +240,8 @@ def main():
     )
 
     if history:
+        avg_complete_accuracy = sum(acc for acc in complete_accuracies if acc is not None) / len(complete_accuracies) if complete_accuracies else 0
+        avg_partial_accuracy = sum(acc for acc in partial_accuracies if acc is not None) / len(partial_accuracies) if partial_accuracies else 0
         plot_training_history(
             history,
             save_path=plot_path,
@@ -247,7 +249,9 @@ def main():
             batch_size=training_mode["batch_size"],
             learning_rate=learning_rate,
             num_files=num_files,
-            dataset_size=dataset_size
+            dataset_size=dataset_size,
+            avg_complete_accuracy=avg_complete_accuracy,
+            avg_partial_accuracy=avg_partial_accuracy
         )
 
     end_time = datetime.now(japan_timezone)

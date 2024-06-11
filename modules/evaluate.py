@@ -92,6 +92,7 @@ def evaluate_model(model, test_data, model_type, model_save_path):
         raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
     
     correct_predictions = 0
+    partial_correct_predictions = 0
     results = []
 
     input_shape = model.input_shape
@@ -133,18 +134,23 @@ def evaluate_model(model, test_data, model_type, model_save_path):
         expected_output_reconstructed = decode_output(expected_output_tokens)
 
         if predicted_output == expected_output_reconstructed:
-            results.append(f"問題{idx + 1} 正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            results.append(f"問題{idx + 1} 完全正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
             correct_predictions += 1
+        elif sorted(predicted_output) == sorted(expected_output_reconstructed):
+            results.append(f"問題{idx + 1} 部分正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            partial_correct_predictions += 1
         else:
             results.append(f"問題{idx + 1} 不正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
 
-    accurate_percentage = correct_predictions / len(input_output_pairs) * 100
+    total_cases = len(input_output_pairs)
+    complete_accuracy = correct_predictions / total_cases * 100
+    partial_accuracy = (correct_predictions + partial_correct_predictions) / total_cases * 100
 
-    result_filename = f"evaluation_result_{accurate_percentage:.2f}%.txt"
+    result_filename = f"evaluation_result_{complete_accuracy:.2f}%_complete_{partial_accuracy:.2f}%_partial.txt"
     evaluation_result_path = "evaluation_result.txt"
     with open(evaluation_result_path, "w", encoding="utf-8") as f:
         f.write("\n".join(results))
-        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
+        f.write(f"\nComplete Accuracy: {complete_accuracy:.2f}%\nPartial Accuracy: {partial_accuracy:.2f}%")
 
     result_dir = os.path.join(os.path.dirname(model_save_path), "evaluation_results")
     os.makedirs(result_dir, exist_ok=True)
@@ -152,11 +158,11 @@ def evaluate_model(model, test_data, model_type, model_save_path):
     model_specific_result_path = os.path.join(result_dir, result_filename)
     with open(model_specific_result_path, "w", encoding="utf-8") as f:
         f.write("\n".join(results))
-        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
+        f.write(f"\nComplete Accuracy: {complete_accuracy:.2f}%\nPartial Accuracy: {partial_accuracy:.2f}%")
 
-    return accurate_percentage
+    return complete_accuracy, partial_accuracy
 
-def main(model_path, num_test_samples=100):
+def main(model_path, num_test_samples=1000):
     # モデルのロード
     model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 
@@ -180,8 +186,9 @@ def main(model_path, num_test_samples=100):
     test_data = load_dataset(test_data_path)
 
     # モデルの評価
-    accuracy = evaluate_model(model, test_data, model_type, model_path)
-    print(f"モデルの精度: {accuracy:.2f}%")
+    complete_accuracy, partial_accuracy = evaluate_model(model, test_data, model_type, model_path)
+    print(f"モデルの完全正解率: {complete_accuracy:.2f}%")
+    print(f"モデルの部分正解率: {partial_accuracy:.2f}%")
     print(f"評価結果は evaluation_result.txt に保存されました。")
 
-    return accuracy
+    return complete_accuracy, partial_accuracy

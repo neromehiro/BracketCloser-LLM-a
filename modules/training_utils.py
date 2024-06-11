@@ -64,6 +64,13 @@ class TrainingHistory(tf.keras.callbacks.Callback):
         if (epoch + 1) % self.save_interval == 0:
             self.save_metadata_and_model(epoch, logs)
 
+    def load_best_loss(self, metadata_path):
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+                self.best_loss = metadata.get('best_loss', float('inf'))
+        except IOError as e:
+            print(f"Failed to load metadata: {e}")
 # TRAINING_MODES に含まれる変数を渡すための変更
 def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, **kwargs):
     # 他のパラメータを kwargs から取り出す
@@ -163,6 +170,7 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
             print(f"Learning rate: {learning_rate}, Batch size: {batch_size}, Epochs: {epochs}")
             print(f"Train data shape: {input_sequences.shape}, Target data shape: {target_tokens.shape}")
         return None, 0
+
 
 def train_model(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func,
                 generate_data_func=None, embedding_dim=64, gru_units=64, dropout_rate=0.2, recurrent_dropout_rate=0.2, regularizer_type='l2', regularizer_value=0.01, callbacks=None):
@@ -397,7 +405,7 @@ def train_model_continue(model, input_sequences, target_tokens, epochs, batch_si
 
 
 def save_final_model_metadata(model_path, history, model_architecture_func, best_params):
-    metadata_path = model_path.replace('best_model.h5', 'best_model_metadata.json')
+    metadata_path = model_path.replace('best_model.h5', 'best_para.json')
     metadata = {
         "epoch": len(history),
         "logs": history[-1],
@@ -422,19 +430,21 @@ def save_final_model_metadata(model_path, history, model_architecture_func, best
 
 
 
-def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size, avg_accuracy):
+def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size, avg_complete_accuracy, avg_partial_accuracy):
     if isinstance(history, dict):
         losses = history.get('loss', [])
         val_losses = history.get('val_loss', [])
         accuracies = history.get('accuracy', [])
         val_accuracies = history.get('val_accuracy', [])
-        eval_accuracies = history.get('eval_accuracy', [])
+        complete_accuracies = history.get('complete_accuracy', [])
+        partial_accuracies = history.get('partial_accuracy', [])
     else:
         losses = [epoch_logs.get('loss', None) for epoch_logs in history]
         val_losses = [epoch_logs.get('val_loss', None) for epoch_logs in history]
         accuracies = [epoch_logs.get('accuracy', None) for epoch_logs in history]
         val_accuracies = [epoch_logs.get('val_accuracy', None) for epoch_logs in history]
-        eval_accuracies = [epoch_logs.get('eval_accuracy', None) for epoch_logs in history]
+        complete_accuracies = [epoch_logs.get('complete_accuracy', None) for epoch_logs in history]
+        partial_accuracies = [epoch_logs.get('partial_accuracy', None) for epoch_logs in history]
 
     epochs_range = range(1, len(losses) + 1)
 
@@ -459,15 +469,23 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
     plt.legend()
 
     plt.subplot(1, 3, 3)
-    if eval_accuracies:  # eval_accuraciesが空でない場合のみプロット
-        plt.plot(epochs_range, eval_accuracies, label='Evaluation Accuracy')
+    if complete_accuracies:  # complete_accuraciesが空でない場合のみプロット
+        plt.plot(epochs_range, complete_accuracies, label='Complete Accuracy')
         plt.xlabel('Epochs')
-        plt.ylabel('Evaluation Accuracy')
-        plt.title('Evaluation Accuracy')
+        plt.ylabel('Complete Accuracy')
+        plt.title('Complete Accuracy')
+        plt.legend()
+
+    if partial_accuracies:  # partial_accuraciesが空でない場合のみプロット
+        plt.plot(epochs_range, partial_accuracies, label='Partial Accuracy')
+        plt.xlabel('Epochs')
+        plt.ylabel('Partial Accuracy')
+        plt.title('Partial Accuracy')
         plt.legend()
 
     # モデルの平均精度をプロット
-    plt.axhline(y=avg_accuracy, color='r', linestyle='--', label='Average Accuracy')
+    plt.axhline(y=avg_complete_accuracy, color='r', linestyle='--', label='Average Complete Accuracy')
+    plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Average Partial Accuracy')
     plt.legend()
 
     plt.tight_layout()
