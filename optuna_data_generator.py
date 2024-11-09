@@ -75,7 +75,7 @@ def generate_bracket_sequence(max_depth: int) -> str:
     
     sequence = ""
     stack = []
-    for _ in range(random.randint(1, 20)):  # 1から20個の括弧を生成
+    for _ in range(random.randint(1, 20)):
         if len(stack) < max_depth and random.random() > 0.3:
             bracket = random.choice(list(BRACKETS.keys()))
             sequence += bracket
@@ -136,23 +136,22 @@ def generate_brackets(n_samples: int, max_depth: int, min_len: int, max_len: int
         input_seq = sequence
         output_seq = close_brackets(sequence)
         input_seq, output_seq = adjust_output_position(input_seq, output_seq)
-        dataset.append(f"input:{input_seq},output:{output_seq}")
+        dataset.append(f"input:{input_seq},output:{output_seq},")
     
     return dataset
 
-def generate_test_data(num_samples: int, max_depth: int = 5, min_len: int = 5, max_len: int = 20) -> List[str]:
+def generate_test_data(num_samples: int = 1000, max_depth: int = 5, min_len: int = 5, max_len: int = 20) -> List[str]:
     return generate_brackets(num_samples, max_depth, min_len, max_len)
 
-def create_datasets(base_dir, num_datasets: int, num_samples_per_dataset: int, max_seq_length=30):
-    for i in range(num_datasets):
-        dataset = generate_test_data(num_samples_per_dataset)
-        filename = f"test_bracket_dataset_{i+1}.json"
-        preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length)
+def create_datasets(base_dir, epoch: int, num_samples: int = 1000, max_seq_length=30):
+    filename = f"test_bracket_dataset_epoch_{epoch}.json"
+    dataset = generate_test_data(num_samples)
+    preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length)
 
 if __name__ == "__main__":
     base_dir = "optuna_studies/hyper_transformer_1"
-    num_datasets = 5
-    num_samples_per_dataset = 100
+    epoch = 1  # デフォルトのepoch値、変更可能
+    num_samples = 1000  # デフォルトで1000個のサンプルを生成
 
-    create_datasets(base_dir, num_datasets, num_samples_per_dataset, max_seq_length=30)
+    create_datasets(base_dir, epoch, num_samples)
     print("データセットの生成と保存が完了しました。")

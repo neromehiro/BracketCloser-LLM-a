@@ -4,17 +4,10 @@ import numpy as np
 import tensorflow as tf
 import logging
 from tensorflow.keras.models import load_model
-from tensorflow.keras.layers import MultiHeadAttention, Input
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from typing import List
-import sys
-from datetime import datetime
 from modules.data_generator import generate_test_data, preprocess_and_save_dataset
 from modules.custom_layers import CustomMultiHeadAttention
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
-
-
 
 # ディレクトリ設定
 dirs = {
@@ -27,82 +20,24 @@ dirs = {
 for dir_path in dirs.values():
     os.makedirs(dir_path, exist_ok=True)
 
-# モデルの選択
-def get_model_list_sorted_by_date(models_dir='./models'):
-    model_list = [d for d in os.listdir(models_dir) if os.path.isdir(os.path.join(models_dir, d))]
-    
-    # 不要なフォルダを除外
-    model_list = [d for d in model_list if d not in ["残すモデル", "trash"]]
-    
-    def extract_date(model_name):
-        try:
-            parts = model_name.split('_')
-            if len(parts) >= 3:
-                timestamp = parts[1] + parts[2]  # '20240604_213643' => '20240604213643'
-                return datetime.strptime(timestamp, '%Y%m%d%H%M%S')
-            else:
-                raise ValueError("Invalid model name format")
-        except Exception as e:
-            print(f"Error parsing date from {model_name}: {e}")
-            return datetime.min
-
-    model_list.sort(key=extract_date, reverse=True)
-    return model_list[:9]  # 最新の9個のモデルのみを表示
-
-def select_model(models_dir='./models'):
-    model_list = get_model_list_sorted_by_date(models_dir)
-    print("Available models (sorted by latest):")
-    for idx, model_name in enumerate(model_list, 1):
-        print(f"{idx}: {model_name}")
-    
-    selected_index = int(input("Select the model index: ")) - 1
-    selected_model_path = os.path.join(models_dir, model_list[selected_index])
-    return selected_model_path
-
-# モデルの保存パス
-model_save_path = select_model()
-model_metadata_path = os.path.join(model_save_path, "training_info.json")
-
-# テストデータの保存パス
-test_data_path = os.path.join(dirs["original"], "test_bracket_dataset.json")
-
-# 評価結果の保存パス
-evaluation_result_path = os.path.join(model_save_path, "evaluation_result.txt")
 # トークンとIDを対応付ける辞書
 tokens = ["(", ")", "【", "】", "{", "}", "input", ",output", ","]
 token2id = {token: i + 1 for i, token in enumerate(tokens)}
 id2token = {i + 1: token for i, token in enumerate(tokens)}
 
-# モデルメタデータをロードしてモデルの種類を自動設定
-def get_model_type(metadata_path: str) -> str:
-    with open(metadata_path, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
-    model_architecture = metadata.get("model_architecture", "")
-    if "gru" in model_architecture.lower():
-        return "gru"
-    elif "transformer" in model_architecture.lower():
-        return "transformer"
-    elif "lstm" in model_architecture.lower():
-        return "lstm"
-    elif "bert" in model_architecture.lower():
-        return "bert"
-    elif "gpt" in model_architecture.lower():
-        return "gpt"
-    else:
-        raise ValueError(f"Unknown model architecture: {model_architecture}")
-
-model_type = get_model_type(model_metadata_path)
-
-# モデルのロード
-model_path = os.path.join(model_save_path, "best_model.h5")
-model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
-
-# モデルのコンパイル
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-# モデルの期待する入力シーケンスの長さを取得
-expected_input_shape = model.input_shape[1]
-default_max_seq_length = expected_input_shape
+def get_model_type_from_model(model) -> str:
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.layers.GRU):
+            return "gru"
+        elif isinstance(layer, tf.keras.layers.LSTM):
+            return "lstm"
+        elif isinstance(layer, tf.keras.layers.MultiHeadAttention):
+            return "transformer"
+        elif isinstance(layer, tf.keras.layers.Dense) and 'bert' in layer.name.lower():
+            return "bert"
+        elif isinstance(layer, tf.keras.layers.Dense) and 'gpt' in layer.name.lower():
+            return "gpt"
+    return "unknown"
 
 def load_dataset(filepath: str) -> List[str]:
     if not os.path.exists(filepath):
@@ -129,18 +64,18 @@ def tokenize_string(string: str) -> List[str]:
 
 def preprocess_input(input_seq: str) -> List[int]:
     tokens = tokenize_string(input_seq)
-    logging.debug(f"Tokenized string: {tokens}")  # デバッグ: トークン化された文字列をログに記録
+    logging.debug(f"Tokenized string: {tokens}")
     return [token2id[token] for token in tokens if token in token2id]
 
 def decode_output(output_seq: List[int]) -> str:
     decoded = "".join([id2token[id] for id in output_seq if id in id2token])
-    logging.debug(f"Decoded output: {decoded}")  # デバッグ: デコードされた出力をログに記録
+    logging.debug(f"Decoded output: {decoded}")
     return decoded
 
 def split_input_output(data):
     input_output_pairs = []
     for item in data:
-        if isinstance(item, str):  # itemが文字列であることを確認
+        if isinstance(item, str):
             input_seq = item.split(",output:")[0] + ",output"
             output_seq = item.split(",output:")[1]
             input_output_pairs.append((input_seq, output_seq))
@@ -148,11 +83,12 @@ def split_input_output(data):
             logging.error(f"Invalid data format: {item}")
     return input_output_pairs
 
-def evaluate_model(model, test_data, model_type, evaluation_result_path):
+def evaluate_model(model, test_data, model_type, model_save_path, epoch):
     if not test_data:
         raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
     
     correct_predictions = 0
+    partial_correct_predictions = 0
     results = []
 
     input_shape = model.input_shape
@@ -174,16 +110,23 @@ def evaluate_model(model, test_data, model_type, evaluation_result_path):
 
         expected_output_tokens = preprocess_input(expected_output)
         predicted_output_ids = []
-        for i in range(len(expected_output_tokens)):
+        
+        # カンマが出力されるか、10個のトークンが生成されるまで予測を継続
+        for i in range(10):  # 最大10個まで
             if isinstance(model.input, list):
                 model_inputs = [np.array([preprocessed_input_padded]), np.array([preprocessed_input_padded])]
             else:
                 model_inputs = np.array([preprocessed_input_padded])
 
-            predicted_output = model.predict(model_inputs)
+            predicted_output = model.predict(model_inputs, verbose=0) 
             predicted_id = np.argmax(predicted_output[0], axis=-1)
             predicted_output_ids.append(predicted_id)
 
+            # カンマが出力されたら終了
+            if predicted_id == token2id[","]:
+                break
+
+            # 入力をスライドして次のトークンを予測
             if len(preprocessed_input_padded) < max_seq_length:
                 preprocessed_input_padded = np.concatenate([preprocessed_input_padded, [predicted_id]])
             else:
@@ -194,57 +137,58 @@ def evaluate_model(model, test_data, model_type, evaluation_result_path):
         expected_output_reconstructed = decode_output(expected_output_tokens)
 
         if predicted_output == expected_output_reconstructed:
-            results.append(f"問題{idx + 1} 正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            results.append(f"問題{idx + 1} 完全正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
             correct_predictions += 1
+        elif sorted(predicted_output) == sorted(expected_output_reconstructed):
+            results.append(f"問題{idx + 1} 部分正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            partial_correct_predictions += 1
         else:
             results.append(f"問題{idx + 1} 不正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
 
-    accurate_percentage = correct_predictions / len(input_output_pairs) * 100
-    
-    result_filename = f"evaluation_result_{accurate_percentage:.2f}%.txt"
+    total_cases = len(input_output_pairs)
+    complete_accuracy = correct_predictions / total_cases * 100
+    partial_accuracy = (correct_predictions + partial_correct_predictions) / total_cases * 100
+
+    # 評価結果のファイルを作成
+    evaluation_result_filename = f"{epoch}_evaluation_result.txt"
+    evaluation_result_path = os.path.join(os.path.dirname(model_save_path), evaluation_result_filename)
     with open(evaluation_result_path, "w", encoding="utf-8") as f:
+        # 最初に正解率を書き込む
+        f.write(f"Complete Accuracy: {complete_accuracy:.2f}%\n")
+        f.write(f"Partial Accuracy: {partial_accuracy:.2f}%\n\n")
+        # 各問題の結果を書き込む
         f.write("\n".join(results))
-        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
 
-    model_specific_result_path = os.path.join(model_save_path, result_filename)
-    with open(model_specific_result_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(results))
-        f.write(f"\nAccuracy: {accurate_percentage:.2f}%")
+    print(f"評価結果は {evaluation_result_path} に保存されました。")
 
-    # training_info.jsonに評価結果を追加
-    training_info_path = os.path.join(model_save_path, "training_info.json")
-    if os.path.exists(training_info_path):
-        with open(training_info_path, "r") as info_file:
-            training_info = json.load(info_file)
-    else:
-        training_info = {}
+    return complete_accuracy, partial_accuracy
 
-    if "evaluation_results" not in training_info:
-        training_info["evaluation_results"] = []
+def main(model_path, epoch, num_test_samples=1000):
+    # モデルのロード
+    model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 
-    training_info["evaluation_results"].append({
-        "evaluation_number": len(training_info["evaluation_results"]) + 1,
-        "accuracy": accurate_percentage
-    })
+    # モデルタイプの取得
+    model_type = get_model_type_from_model(model)
+    logging.info(f"Model type: {model_type}")
 
-    with open(training_info_path, "w") as info_file:
-        json.dump(training_info, info_file, indent=4, ensure_ascii=False)
+    # モデルのコンパイル
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-    return accurate_percentage
+    # テストデータの生成
+    test_dataset = generate_test_data(num_test_samples)
 
-# テストデータのサンプル数
-num_test_samples = 100
+    # テストデータの前処理と保存
+    preprocess_and_save_dataset(test_dataset, "test_bracket_dataset.json", max_seq_length=30)
 
-# テストデータの生成
-test_dataset = generate_test_data(num_test_samples)
+    # テストデータの保存パス
+    test_data_path = os.path.join(dirs["original"], "test_bracket_dataset.json")
 
-# テストデータの前処理と保存
-preprocess_and_save_dataset(test_dataset, "test_bracket_dataset.json", max_seq_length=30)
+    # テストデータのロード
+    test_data = load_dataset(test_data_path)
 
-# テストデータのロード
-test_data = load_dataset(test_data_path)
+    # モデルの評価
+    complete_accuracy, partial_accuracy = evaluate_model(model, test_data, model_type, model_path, epoch)
+    print(f"モデルの完全正解率: {complete_accuracy:.2f}%")
+    print(f"モデルの部分正解率: {partial_accuracy:.2f}%")
 
-# モデルの評価
-accuracy = evaluate_model(model, test_data, model_type, evaluation_result_path)
-print(f"モデルの精度: {accuracy:.2f}%")
-print(f"評価結果は {evaluation_result_path} に保存されました。")
+    return complete_accuracy, partial_accuracy

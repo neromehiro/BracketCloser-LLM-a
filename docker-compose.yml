@@ -1,0 +1,22 @@
+
+version: '3.8'
+
+services:
+  bracket_closer:
+    image: nero1014/bracket-closer-image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app/project
+    working_dir: /app/project
+    deploy:
+      resources:
+        limits:
+          memory: 28g
+          cpus: '8'
+    tmpfs:
+      - /tmp:rw,size=10g
+    environment:
+      TMPDIR: /tmp/docker
+    command: ["bash"]

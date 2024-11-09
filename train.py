@@ -1,3 +1,4 @@
+# train.py
 import os
 import sys
 import json
@@ -53,14 +54,14 @@ TRAINING_MODES = {
     "2days": {"epochs": 160, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
     "4days": {"epochs": 320, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
     "op": { 
-        "learning_rate": 6.078927875211042e-05,
-        "batch_size": 46,
+        "learning_rate": 0.00023979260599979734,
+        "batch_size": 56,
         "regularizer_type": "l2",
-        "regularizer_value": 2.4139902042339388e-06,
-        "embedding_dim": 203,
-        "num_heads": 8,
-        "ffn_units": 153,
-        "dropout_rate": 0.1538604498254776,
+        "regularizer_value": 1.0703148054547978e-06,
+        "embedding_dim": 218,
+        "num_heads": 3,
+        "ffn_units": 202,
+        "dropout_rate": 0.16009354834601996,
         "epochs": 300 ,
         "num_files": 1
     }
@@ -283,7 +284,7 @@ def main():
                         full_history.append(epoch_data)
                         
             if os.path.exists(model_path):
-                complete_accuracy, partial_accuracy = evaluate_main(model_path)
+                complete_accuracy, partial_accuracy = evaluate_main(model_path, epoch + 1)
                 complete_accuracies.append(complete_accuracy)
                 partial_accuracies.append(partial_accuracy)
                 print(f"Evaluation completed.")

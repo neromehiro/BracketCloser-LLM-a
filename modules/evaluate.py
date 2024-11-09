@@ -84,7 +84,7 @@ def split_input_output(data):
             logging.error(f"Invalid data format: {item}")
     return input_output_pairs
 
-def evaluate_model(model, test_data, model_type, model_save_path):
+def evaluate_model(model, test_data, model_type, model_save_path, epoch_num):
     if not test_data:
         raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
     
@@ -111,7 +111,9 @@ def evaluate_model(model, test_data, model_type, model_save_path):
 
         expected_output_tokens = preprocess_input(expected_output)
         predicted_output_ids = []
-        for i in range(len(expected_output_tokens)):
+        
+        # カンマが出力されるか、10個のトークンが生成されるまで予測を継続
+        for i in range(10):  # 最大10個まで
             if isinstance(model.input, list):
                 model_inputs = [np.array([preprocessed_input_padded]), np.array([preprocessed_input_padded])]
             else:
@@ -121,6 +123,11 @@ def evaluate_model(model, test_data, model_type, model_save_path):
             predicted_id = np.argmax(predicted_output[0], axis=-1)
             predicted_output_ids.append(predicted_id)
 
+            # カンマが出力されたら終了
+            if predicted_id == token2id[","]:
+                break
+
+            # 入力をスライドして次のトークンを予測
             if len(preprocessed_input_padded) < max_seq_length:
                 preprocessed_input_padded = np.concatenate([preprocessed_input_padded, [predicted_id]])
             else:
@@ -143,23 +150,30 @@ def evaluate_model(model, test_data, model_type, model_save_path):
     complete_accuracy = correct_predictions / total_cases * 100
     partial_accuracy = (correct_predictions + partial_correct_predictions) / total_cases * 100
 
-    result_filename = f"evaluation_result_{complete_accuracy:.2f}%_complete_{partial_accuracy:.2f}%_partial.txt"
+    # Add the complete and partial accuracy to the beginning of the result
+    result_filename = f"epoch_{epoch_num}_evaluation_result_{complete_accuracy:.2f}%_complete_{partial_accuracy:.2f}%_partial.txt"
     evaluation_result_path = "evaluation_result.txt"
+    
     with open(evaluation_result_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(results))
-        f.write(f"\nComplete Accuracy: {complete_accuracy:.2f}%\nPartial Accuracy: {partial_accuracy:.2f}%")
+        # Write the accuracies at the top
+        f.write(f"完全正解率: {complete_accuracy:.2f}%\n")
+        f.write(f"部分正解率: {partial_accuracy:.2f}%\n")
+        f.write("\n".join(results))  # Then the problem results
 
     result_dir = os.path.join(os.path.dirname(model_save_path), "evaluation_results")
     os.makedirs(result_dir, exist_ok=True)
 
     model_specific_result_path = os.path.join(result_dir, result_filename)
+    
     with open(model_specific_result_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(results))
-        f.write(f"\nComplete Accuracy: {complete_accuracy:.2f}%\nPartial Accuracy: {partial_accuracy:.2f}%")
+        # Write the accuracies at the top
+        f.write(f"完全正解率: {complete_accuracy:.2f}%\n")
+        f.write(f"部分正解率: {partial_accuracy:.2f}%\n")
+        f.write("\n".join(results))  # Then the problem results
 
     return complete_accuracy, partial_accuracy
 
-def main(model_path, num_test_samples=1000):
+def main(model_path, epoch_num, num_test_samples=1000):
     # モデルのロード
     model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 
@@ -183,9 +197,10 @@ def main(model_path, num_test_samples=1000):
     test_data = load_dataset(test_data_path)
 
     # モデルの評価
-    complete_accuracy, partial_accuracy = evaluate_model(model, test_data, model_type, model_path)
+    complete_accuracy, partial_accuracy = evaluate_model(model, test_data, model_type, model_path, epoch_num)
     print(f"モデルの完全正解率: {complete_accuracy:.2f}%")
     print(f"モデルの部分正解率: {partial_accuracy:.2f}%")
     print(f"評価結果は evaluation_result.txt に保存されました。")
 
     return complete_accuracy, partial_accuracy
+

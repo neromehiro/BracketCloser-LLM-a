@@ -150,7 +150,7 @@ def generate_brackets(n_samples: int, max_depth: int, min_len: int, max_len: int
         input_seq = sequence
         output_seq = close_brackets(sequence)
         input_seq, output_seq = adjust_output_position(input_seq, output_seq)
-        dataset.append(f"input:{input_seq},output:{output_seq}")
+        dataset.append(f"input:{input_seq},output:{output_seq},")
     
     return dataset
 
