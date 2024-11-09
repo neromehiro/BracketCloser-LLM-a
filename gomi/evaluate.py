@@ -1,3 +1,4 @@
+# evaluate.py
 import os
 import json
 import numpy as np
@@ -163,7 +164,7 @@ def evaluate_model(model, test_data, model_type, model_save_path, epoch):
 
     return complete_accuracy, partial_accuracy
 
-def main(model_path, epoch, num_test_samples=1000):
+def main(model_path, epoch, num_test_samples=100):
     # モデルのロード
     model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 

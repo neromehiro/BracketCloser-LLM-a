@@ -1,0 +1,13 @@
+{
+    "training_duration_minutes": 0,
+    "epochs": 160,
+    "batch_size": 1024,
+    "num_files": 1,
+    "learning_rate": 0.0005,
+    "dataset_size": 1000,
+    "model_size_MB": 0,
+    "model_params": 26250,
+    "model_architecture": "define_gru_model",
+    "training_start_time": "2024-06-11 10:23:34",
+    "training_end_time": ""
+}

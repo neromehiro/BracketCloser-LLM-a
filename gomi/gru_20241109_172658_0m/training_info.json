@@ -1,0 +1,39 @@
+{
+    "training_duration_minutes": 0,
+    "epochs": 3,
+    "batch_size": 256,
+    "num_files": 1,
+    "learning_rate": 0.01,
+    "dataset_size": 300,
+    "model_size_MB": 0,
+    "model_params": 26250,
+    "model_architecture": "define_gru_model",
+    "training_start_time": "2024-11-09 17:26:58",
+    "training_end_time": "",
+    "all_epoch_history": [
+        {
+            "loss": 1.1337648630142212,
+            "val_loss": 0.9200637936592102,
+            "accuracy": 0.0994252860546112,
+            "val_accuracy": 0.1149425283074379,
+            "complete_accuracy": 0.0,
+            "partial_accuracy": 0.0
+        },
+        {
+            "loss": 0.8525914549827576,
+            "val_loss": 0.8507475852966309,
+            "accuracy": 0.18563218414783478,
+            "val_accuracy": 0.20057471096515656,
+            "complete_accuracy": 6.0,
+            "partial_accuracy": 6.0
+        },
+        {
+            "loss": 0.8050370812416077,
+            "val_loss": 0.8221707940101624,
+            "accuracy": 0.20445401966571808,
+            "val_accuracy": 0.2103448212146759,
+            "complete_accuracy": 17.0,
+            "partial_accuracy": 17.0
+        }
+    ]
+}

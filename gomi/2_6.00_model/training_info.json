@@ -1,0 +1,1 @@
+{"model_type": "gru", "epochs": 2, "complete_accuracy": 6.0, "partial_accuracy": 6.0}

@@ -1,3 +1,4 @@
+
 # train-continue.py
 import os
 import sys
@@ -41,7 +42,9 @@ def generate_datasets(base_dir, num_samples):
 
 def list_existing_models():
     models = sorted([d for d in os.listdir(model_save_path) if os.path.isdir(os.path.join(model_save_path, d))])
-    return models
+    # 最新の9個のモデルに制限
+    return models[-9:] if len(models) > 9 else models
+
 
 def select_existing_model():
     models = list_existing_models()
@@ -88,39 +91,53 @@ def main():
     existing_model_dir = select_existing_model()
     if not existing_model_dir:
         return
-
     model, training_info = load_model_and_info(existing_model_dir)
+
+    # モデルの保存パスを定義
+    model_path = os.path.join(model_save_path, existing_model_dir, "best_model.h5")
 
     training_params = {
         "learning_rate": training_info["learning_rate"],
         "batch_size": training_info["batch_size"],
-        "epochs": training_info["epochs"],  # 追加
-        "num_files": training_info["num_files"],  # 追加
-        "dataset_size": training_info["dataset_size"],  # 追加
-        "architecture": training_info.get("model_architecture", "unknown"),  # 追加
+        "epochs": training_info["epochs"],
+        "num_files": training_info["num_files"],
+        "dataset_size": training_info["dataset_size"],
+        "architecture": training_info.get("model_architecture", "unknown"),
     }
 
     additional_epochs = int(input("追加で学習させるエポック数を入力してください: "))
+    total_epochs = training_info.get("total_epochs", training_info["epochs"]) + additional_epochs
 
-    num_samples = training_info["dataset_size"]
-    num_files = training_info["num_files"]
+    # プロットデータの読み込み
+    plot_data_path = os.path.join(model_save_path, existing_model_dir, "plot_data.json")
+    if os.path.exists(plot_data_path):
+        with open(plot_data_path, "r") as plot_file:
+            previous_plot_data = json.load(plot_file)
+        all_epoch_history = [
+            {'loss': loss, 'val_loss': val_loss, 'accuracy': accuracy, 'val_accuracy': val_accuracy}
+            for loss, val_loss, accuracy, val_accuracy in zip(
+                previous_plot_data.get('loss', []),
+                previous_plot_data.get('val_loss', []),
+                previous_plot_data.get('accuracy', []),
+                previous_plot_data.get('val_accuracy', [])
+            )
+        ]
+        complete_accuracies = previous_plot_data.get('complete_accuracy', [])
+        partial_accuracies = previous_plot_data.get('partial_accuracy', [])
+    else:
+        all_epoch_history = []
+        complete_accuracies = []
+        partial_accuracies = []
 
-    # 完全な正答率と部分的な正答率を格納するリストを追加
-    complete_accuracies = []
-    partial_accuracies = []
-
-    # 日本時間のタイムゾーンを設定
     start_time = datetime.now(japan_timezone)
-
     dataset_path = os.path.join(model_save_path, existing_model_dir)
-    generate_datasets(dataset_path, num_samples)
+    generate_datasets(dataset_path, training_info["dataset_size"])
 
+    # トレーニングデータの準備
     preprocessed_path = os.path.join(dataset_path, "dataset", "preprocessed")
-
-    input_sequences = []
-    target_tokens = []
+    input_sequences, target_tokens = [], []
     for dirpath, dirnames, filenames in os.walk(preprocessed_path):
-        for file in filenames[:num_files]:
+        for file in filenames[:training_info["num_files"]]:
             file_path = os.path.join(dirpath, file)
             encoded_tokens_list = load_dataset(file_path)
             for encoded_tokens in encoded_tokens_list:
@@ -128,20 +145,12 @@ def main():
                 input_sequences.append(seq_input)
                 target_tokens.append(seq_target)
 
-    if not input_sequences or not target_tokens:
-        print("No data for training.")
-        return
-
     input_sequences = np.concatenate(input_sequences, axis=0)
     target_tokens = np.concatenate(target_tokens, axis=0)
 
-    all_epoch_history = []
-
-    # モデルの保存パスを定義
-    model_path = os.path.join(model_save_path, existing_model_dir, "best_model.h5")
-
     for epoch in range(additional_epochs):
-        print(f"Epoch {epoch + 1}/{additional_epochs}")
+        current_epoch = training_info.get("total_epochs", training_info["epochs"]) + epoch + 1
+        print(f"Epoch {current_epoch}/{total_epochs}")
 
         history = model.fit(
             input_sequences,
@@ -151,7 +160,7 @@ def main():
             validation_split=0.1
         )
 
-        # エポックの履歴を保存
+        # エポックの履歴データを辞書形式で追加
         epoch_data = {
             'loss': history.history['loss'][0],
             'accuracy': history.history['accuracy'][0],
@@ -160,23 +169,12 @@ def main():
         }
         all_epoch_history.append(epoch_data)
 
-        # モデルを保存
-        model.save(model_path)
-
         # 評価を実行し、正答率を取得
-        if os.path.exists(model_path):
-            complete_accuracy, partial_accuracy = evaluate_main(model_path, epoch + 1)
-            complete_accuracies.append(complete_accuracy)
-            partial_accuracies.append(partial_accuracy)
-            print(f"Evaluation completed.")
-            print(f"Complete accuracy: {complete_accuracy:.2f}%")
-            print(f"Partial accuracy: {partial_accuracy:.2f}%")
-        else:
-            complete_accuracies.append(None)
-            partial_accuracies.append(None)
-            print(f"Model file does not exist at path: {model_path}")
+        complete_accuracy, partial_accuracy = evaluate_main(model_path, current_epoch)
+        complete_accuracies.append(complete_accuracy)
+        partial_accuracies.append(partial_accuracy)
 
-        # プロットの更新
+        # プロットデータを更新
         plot_data = {
             'loss': [epoch['loss'] for epoch in all_epoch_history],
             'val_loss': [epoch['val_loss'] for epoch in all_epoch_history],
@@ -186,74 +184,26 @@ def main():
             'partial_accuracy': partial_accuracies
         }
 
-        plot_save_path = os.path.join(model_save_path, existing_model_dir, "training_history.png")
-        avg_complete_accuracy = sum(acc for acc in complete_accuracies if acc is not None) / len(complete_accuracies)
-        avg_partial_accuracy = sum(acc for acc in partial_accuracies if acc is not None) / len(partial_accuracies)
-
-        # initial_metadataを取得または設定
-        initial_metadata = {
-            "training_duration_minutes": training_info.get("training_duration_minutes", 0),
-            "epochs": training_params["epochs"],
-            "batch_size": training_params["batch_size"],
-            "num_files": training_params["num_files"],
-            "learning_rate": training_params["learning_rate"],
-            "dataset_size": training_params["dataset_size"],
-            "model_size_MB": training_info.get("model_size_MB", 0),
-            "model_params": model.count_params(),
-            "model_architecture": training_params["architecture"],
-            "training_start_time": training_info.get("training_start_time", start_time.strftime("%Y-%m-%d %H:%M:%S")),
-            "training_end_time": ""
-        }
-
+        # エポック終了後にリアルタイムでプロットとplot_data.jsonを保存
         plot_training_history(
             plot_data,
-            save_path=plot_save_path,
-            epochs=training_params["epochs"] + additional_epochs,
+            save_path=os.path.join(model_save_path, existing_model_dir, "training_history.png"),
+            epochs=total_epochs,
             batch_size=training_params["batch_size"],
             learning_rate=training_params["learning_rate"],
             num_files=training_params["num_files"],
             dataset_size=training_params["dataset_size"],
-            avg_complete_accuracy=avg_complete_accuracy,
-            avg_partial_accuracy=avg_partial_accuracy,
-            initial_metadata=initial_metadata
+            avg_complete_accuracy=sum(complete_accuracies) / len(complete_accuracies),
+            avg_partial_accuracy=sum(partial_accuracies) / len(partial_accuracies),
+            initial_metadata=training_info
         )
 
-    end_time = datetime.now(japan_timezone)
-    training_duration = (end_time - start_time).total_seconds() / 60  # 分単位に変換
-
-    # training_info.jsonの更新
-    if "training_sessions" not in training_info:
-        training_info["training_sessions"] = []
-
-    new_training_session = {
-        "training_date": end_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "epochs": additional_epochs,
-        "batch_size": training_params["batch_size"],
-        "learning_rate": training_params["learning_rate"],
-        "training_duration_minutes": training_duration,
-        "final_loss": all_epoch_history[-1]['loss'],
-        "final_accuracy": all_epoch_history[-1]['accuracy'],
-        "complete_accuracies": complete_accuracies,
-        "partial_accuracies": partial_accuracies
-    }
-
-    training_info["training_sessions"].append(new_training_session)
-
-    previous_total_epochs = training_info.get("total_epochs", training_info["epochs"])
-    training_info["total_epochs"] = previous_total_epochs + additional_epochs
-
-    training_info["training_end_time"] = end_time.strftime("%Y-%m-%d %H:%M:%S")
-    training_info["training_duration_minutes"] += training_duration
-
-    with open(os.path.join(model_save_path, existing_model_dir, "training_info.json"), "w") as info_file:
-        json.dump(training_info, info_file, indent=4, ensure_ascii=False)
+        # plot_data.jsonを更新
+        with open(plot_data_path, "w") as plot_file:
+            json.dump(plot_data, plot_file, indent=4)
 
     print("追加のトレーニングが完了しました。")
-    print(f"最終的な損失: {new_training_session['final_loss']}")
-    print(f"最終的な精度: {new_training_session['final_accuracy']}")
-    print("各エポックごとの完全な正答率と部分的な正答率:")
-    for i, (c_acc, p_acc) in enumerate(zip(complete_accuracies, partial_accuracies), 1):
-        print(f"Epoch {i}: Complete Accuracy = {c_acc:.2f}%, Partial Accuracy = {p_acc:.2f}%")
 
 if __name__ == "__main__":
     main()
+

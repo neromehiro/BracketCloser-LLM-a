@@ -318,6 +318,11 @@ def main():
             initial_metadata=initial_metadata  # ここでinitial_metadataを渡す
         )
 
+        # プロットデータを保存
+        plot_data_path = os.path.join(temp_save_dir, "plot_data.json")
+        with open(plot_data_path, "w") as json_file:
+            json.dump(plot_data, json_file, indent=4)
+
         all_input_sequences = []
         all_target_tokens = []
 
@@ -355,3 +360,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
