@@ -1,0 +1,12 @@
+{
+    "loss": [],
+    "val_loss": [],
+    "accuracy": [],
+    "val_accuracy": [],
+    "complete_accuracy": [
+        15.4
+    ],
+    "partial_accuracy": [
+        17.5
+    ]
+}

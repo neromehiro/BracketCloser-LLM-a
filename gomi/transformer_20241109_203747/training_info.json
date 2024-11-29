@@ -1,0 +1,14 @@
+{
+    "epoch": 24,
+    "training_duration_minutes": 6.0663006,
+    "epochs": 300,
+    "batch_size": 56,
+    "num_files": 1,
+    "learning_rate": 0.00023979260599979734,
+    "dataset_size": 500,
+    "model_size_MB": 7.7163238525390625,
+    "model_params": 666202,
+    "model_architecture": "transformer",
+    "training_start_time": "2024-11-09 20:37:47",
+    "training_end_time": "2024-11-09 20:43:51"
+}
