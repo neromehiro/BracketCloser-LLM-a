@@ -45,18 +45,55 @@ class Config:
         "24hours": {"epochs": 80, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
         "2days": {"epochs": 160, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
         "4days": {"epochs": 320, "batch_size": 1024, "num_files": 1, "learning_rate": 0.0005},
-        "op": {
-            "learning_rate": 0.00023979260599979734,
-            "batch_size": 56,
+        # "op": { # transformer用
+        #     "learning_rate": 0.00023979260599979734,
+        #     "batch_size": 1024,
+        #     "regularizer_type": "l2",
+        #     "regularizer_value": 1.0703148054547978e-06,
+        #     "embedding_dim": 218,
+        #     "num_heads": 3,
+        #     "ffn_units": 202,
+        #     "dropout_rate": 0.16009354834601996,
+        #     "epochs": 300,
+        #     "num_files": 1
+        # }
+        "op": { # transformer 複雑度を上げた
+            "learning_rate": 0.0001,  # 学習率を小さくして微細な調整を可能に
+            "batch_size": 512,       # バッチサイズを減らして勾配更新頻度を上げる
             "regularizer_type": "l2",
-            "regularizer_value": 1.0703148054547978e-06,
-            "embedding_dim": 218,
-            "num_heads": 3,
-            "ffn_units": 202,
-            "dropout_rate": 0.16009354834601996,
-            "epochs": 300,
-            "num_files": 1
+            "regularizer_value": 1.0e-07,  # 正則化を弱め、複雑なモデルを許容
+            "embedding_dim": 512,    # 埋め込み次元を増やし、表現力を向上
+            "num_heads": 8,          # Attentionヘッド数を増やして情報抽出能力を強化
+            "ffn_units": 1024,       # フィードフォワードネットワークのユニット数を増やす
+            "dropout_rate": 0.1,     # ドロップアウト率を下げて学習を促進
+            "epochs": 500,           # エポック数を増やし、十分な学習を確保
+            "num_files": 1           # 変更なし
         }
+
+        # "op": { # gru用 optuna
+        #     "learning_rate": 0.0001,
+        #     "batch_size": 32,
+        #     "regularizer_type": "l2",
+        #     "regularizer_value": 1.2526981458684705e-06,
+        #     "embedding_dim": 94,
+        #     "gru_units": 177,
+        #     "dropout_rate": 0.2330572493663566,
+        #     "recurrent_dropout_rate": 0.1878114654182462,
+        #     "num_files": 1, 
+        #     "epochs": 300
+        # },
+        # "op": { # gru用 複雑度を上げた
+        #     "learning_rate": 0.0001,
+        #     "batch_size": 32,
+        #     "regularizer_type": "l2",
+        #     "regularizer_value": 1.2526981458684701e-07, # e-6→e-7
+        #     "embedding_dim": 256, # 94→256
+        #     "gru_units": 177,
+        #     "dropout_rate": 0.2330572493663566,
+        #     "recurrent_dropout_rate": 0.1878114654182462,
+        #     "num_files": 1, 
+        #     "epochs": 300
+        # },
     }
     
     @staticmethod

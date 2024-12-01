@@ -85,13 +85,22 @@ def split_input_output(data):
             logging.error(f"Invalid data format: {item}")
     return input_output_pairs
 
+
+
+
 def evaluate_model(model, test_data, model_type, model_save_path, epoch_num):
     if not test_data:
         raise ValueError("Test data is empty. Please check if the dataset was generated and saved correctly.")
-    
-    correct_predictions = 0
-    partial_correct_predictions = 0
-    results = []
+
+    # カテゴリーごとの正答数と総問題数を初期化
+    one_answer_correct = 0
+    one_answer_total = 0
+    multi_answer_correct = 0
+    multi_answer_total = 0
+
+    # 結果をカテゴリー別に保存するリスト
+    results_one_answer = []
+    results_multi_answer = []
 
     input_shape = model.input_shape
     if isinstance(input_shape, list):
@@ -100,9 +109,14 @@ def evaluate_model(model, test_data, model_type, model_save_path, epoch_num):
         max_seq_length = input_shape[1]
 
     input_output_pairs = split_input_output(test_data)
-    
+
     if len(input_output_pairs) == 0:
         raise ValueError("No input-output pairs found in the test data.")
+
+    # 括弧の対応関係と判定に使用するセット
+    bracket_pairs = {"(": ")", "【": "】", "{": "}"}
+    opening_brackets = set(bracket_pairs.keys())
+    closing_brackets = set(bracket_pairs.values())
 
     for idx, (input_seq, expected_output) in enumerate(input_output_pairs):
         preprocessed_input = preprocess_input(input_seq)
@@ -110,23 +124,44 @@ def evaluate_model(model, test_data, model_type, model_save_path, epoch_num):
             [preprocessed_input], maxlen=max_seq_length, padding='post', value=0
         )[0]
 
-        expected_output_tokens = preprocess_input(expected_output)
+        # 入力シーケンスから未閉じの開き括弧の数をカウント
+        input_tokens = tokenize_string(input_seq)
+
+        # エンドトークンを除外
+        if ",output" in input_tokens:
+            end_index = input_tokens.index(",output")
+            input_tokens = input_tokens[:end_index]
+        else:
+            # ",output" が存在しない場合の対応
+            pass  # または適切な処理を追加
+
+        stack = []
+        for token in input_tokens:
+            if token in opening_brackets:
+                stack.append(token)
+            elif token in closing_brackets:
+                if stack and bracket_pairs[stack[-1]] == token:
+                    stack.pop()
+
+        num_missing_brackets = len(stack)  # 未閉じの開き括弧の数が必要な回答数
+
         predicted_output_ids = []
-        
-        # カンマが出力されるか、10個のトークンが生成されるまで予測を継続
+
+        # モデルの予測を実行
         for i in range(10):  # 最大10個まで
             if isinstance(model.input, list):
                 model_inputs = [np.array([preprocessed_input_padded]), np.array([preprocessed_input_padded])]
             else:
                 model_inputs = np.array([preprocessed_input_padded])
 
-            predicted_output = model.predict(model_inputs, verbose=0) 
+            predicted_output = model.predict(model_inputs, verbose=0)
             predicted_id = np.argmax(predicted_output[0], axis=-1)
-            predicted_output_ids.append(predicted_id)
 
-            # カンマが出力されたら終了
+            # エンドトークンをチェック（ここではカンマ "," がエンドトークンとして使用されています）
             if predicted_id == token2id[","]:
                 break
+
+            predicted_output_ids.append(predicted_id)
 
             # 入力をスライドして次のトークンを予測
             if len(preprocessed_input_padded) < max_seq_length:
@@ -135,46 +170,78 @@ def evaluate_model(model, test_data, model_type, model_save_path, epoch_num):
                 preprocessed_input_padded = np.roll(preprocessed_input_padded, -1)
                 preprocessed_input_padded[-1] = predicted_id
 
+        # エンドトークンを除外してデコード
         predicted_output = decode_output(predicted_output_ids)
-        expected_output_reconstructed = decode_output(expected_output_tokens)
+        expected_output = expected_output.strip(",")  # 正解の出力からエンドトークンを削除
 
-        if predicted_output == expected_output_reconstructed:
-            results.append(f"問題{idx + 1} 完全正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
-            correct_predictions += 1
-        elif sorted(predicted_output) == sorted(expected_output_reconstructed):
-            results.append(f"問題{idx + 1} 部分正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
-            partial_correct_predictions += 1
+        # 予測結果と期待される出力を比較
+        is_correct = predicted_output == expected_output
+
+        # 問題をカテゴリー分けして結果を保存
+        if num_missing_brackets == 1:
+            one_answer_total += 1
+            if is_correct:
+                one_answer_correct += 1
+                results_one_answer.append(f"問題{idx + 1} 正解\n入力: {input_seq}\n出力: {predicted_output}\n正解: {expected_output}\n")
+            else:
+                results_one_answer.append(f"問題{idx + 1} 不正解\n入力: {input_seq}\n出力: {predicted_output}\n正解: {expected_output}\n")
+        elif num_missing_brackets >= 2:
+            multi_answer_total += 1
+            if is_correct:
+                multi_answer_correct += 1
+                results_multi_answer.append(f"問題{idx + 1} 正解\n入力: {input_seq}\n出力: {predicted_output}\n正解: {expected_output}\n")
+            else:
+                results_multi_answer.append(f"問題{idx + 1} 不正解\n入力: {input_seq}\n出力: {predicted_output}\n正解: {expected_output}\n")
         else:
-            results.append(f"問題{idx + 1} 不正解\n入力した単語 Input: {input_seq}\n出力の単語: {predicted_output}\n正解の単語: {expected_output_reconstructed}\n")
+            # 未閉じの括弧がない場合、評価から除外する（必要に応じて）
+            pass
 
-    total_cases = len(input_output_pairs)
-    complete_accuracy = correct_predictions / total_cases * 100
-    partial_accuracy = (correct_predictions + partial_correct_predictions) / total_cases * 100
+    # 正答率の計算
+    if one_answer_total > 0:
+        complete_accuracy = one_answer_correct / one_answer_total * 100
+    else:
+        complete_accuracy = 0.0
 
-    # Add the complete and partial accuracy to the beginning of the result
-    result_filename = f"epoch_{epoch_num}_evaluation_result_{complete_accuracy:.2f}%_complete_{partial_accuracy:.2f}%_partial.txt"
+    if multi_answer_total > 0:
+        partial_accuracy = multi_answer_correct / multi_answer_total * 100
+    else:
+        partial_accuracy = 0.0
+
+    # 結果をファイルに書き込む
     evaluation_result_path = "evaluation_result.txt"
-    
     with open(evaluation_result_path, "w", encoding="utf-8") as f:
-        # Write the accuracies at the top
-        f.write(f"完全正解率: {complete_accuracy:.2f}%\n")
-        f.write(f"部分正解率: {partial_accuracy:.2f}%\n")
-        f.write("\n".join(results))  # Then the problem results
+        f.write(f"完全正解率 (1問における正答率): {complete_accuracy:.2f}% (正解数: {one_answer_correct}/{one_answer_total})\n")
+        f.write(f"部分正解率 (2問以上の正答率): {partial_accuracy:.2f}% (正解数: {multi_answer_correct}/{multi_answer_total})\n\n")
 
+        f.write("【1問における問題の結果】\n")
+        f.write("\n".join(results_one_answer))
+        f.write("\n\n【2問以上における問題の結果】\n")
+        f.write("\n".join(results_multi_answer))
+
+    # モデル固有の結果を保存
     result_dir = os.path.join(os.path.dirname(model_save_path), "evaluation_results")
     os.makedirs(result_dir, exist_ok=True)
 
+    result_filename = f"epoch_{epoch_num}_evaluation_result.txt"
     model_specific_result_path = os.path.join(result_dir, result_filename)
-    
+
     with open(model_specific_result_path, "w", encoding="utf-8") as f:
-        # Write the accuracies at the top
-        f.write(f"完全正解率: {complete_accuracy:.2f}%\n")
-        f.write(f"部分正解率: {partial_accuracy:.2f}%\n")
-        f.write("\n".join(results))  # Then the problem results
+        f.write(f"完全正解率 (1問における正答率): {complete_accuracy:.2f}% (正解数: {one_answer_correct}/{one_answer_total})\n")
+        f.write(f"部分正解率 (2問以上の正答率): {partial_accuracy:.2f}% (正解数: {multi_answer_correct}/{multi_answer_total})\n\n")
+
+        f.write("【1問における問題の結果】\n")
+        f.write("\n".join(results_one_answer))
+        f.write("\n\n【2問以上における問題の結果】\n")
+        f.write("\n".join(results_multi_answer))
+
+    # 結果を表示
+    print(f"完全正解率 (1問における正答率): {complete_accuracy:.2f}% (正解数: {one_answer_correct}/{one_answer_total})")
+    print(f"部分正解率 (2問以上の正答率): {partial_accuracy:.2f}% (正解数: {multi_answer_correct}/{multi_answer_total})")
+    print(f"評価結果は {evaluation_result_path} に保存されました。")
 
     return complete_accuracy, partial_accuracy
 
-def main(model_path, epoch_num, num_test_samples=10):
+def main(model_path, epoch_num, num_test_samples=500):
     # モデルのロード
     model = load_model(model_path, custom_objects={'CustomMultiHeadAttention': CustomMultiHeadAttention})
 

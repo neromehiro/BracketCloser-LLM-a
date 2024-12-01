@@ -479,22 +479,22 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
 
     plt.subplot(1, 3, 3)
     if complete_accuracies:  # complete_accuraciesが空でない場合のみプロット
-        plt.plot(epochs_range, complete_accuracies, label='Complete Accuracy')
+        plt.plot(epochs_range, complete_accuracies, label='1 question accuracy')
         plt.xlabel('Epochs')
-        plt.ylabel('Complete Accuracy')
-        plt.title('Complete Accuracy')
+        plt.ylabel('1 question accuracy')
+        plt.title('1 question accuracy')
         plt.legend()
 
     if partial_accuracies:  # partial_accuraciesが空でない場合のみプロット
-        plt.plot(epochs_range, partial_accuracies, label='Partial Accuracy')
+        plt.plot(epochs_range, partial_accuracies, label='2+ questions accuracy')
         plt.xlabel('Epochs')
-        plt.ylabel('Partial Accuracy')
-        plt.title('Partial Accuracy')
+        plt.ylabel('2+ questions accuracy')
+        plt.title('2+ questions accuracy')
         plt.legend()
 
     # モデルの平均精度をプロット
-    plt.axhline(y=avg_complete_accuracy, color='r', linestyle='--', label='Average Complete Accuracy')
-    plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Average Partial Accuracy')
+    plt.axhline(y=avg_complete_accuracy, color='r', linestyle='--', label='Average 1 question accuracy')
+    plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Average 2+ questions accuracy')
     plt.legend()
 
 
