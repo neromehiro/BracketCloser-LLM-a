@@ -57,18 +57,18 @@ class Config:
         #     "epochs": 300,
         #     "num_files": 1
         # }
-        "op": { # transformer 複雑度を上げた
-            "learning_rate": 0.0001,  # 学習率を小さくして微細な調整を可能に
-            "batch_size": 512,       # バッチサイズを減らして勾配更新頻度を上げる
-            "regularizer_type": "l2",
-            "regularizer_value": 1.0e-07,  # 正則化を弱め、複雑なモデルを許容
-            "embedding_dim": 512,    # 埋め込み次元を増やし、表現力を向上
-            "num_heads": 8,          # Attentionヘッド数を増やして情報抽出能力を強化
-            "ffn_units": 1024,       # フィードフォワードネットワークのユニット数を増やす
-            "dropout_rate": 0.1,     # ドロップアウト率を下げて学習を促進
-            "epochs": 500,           # エポック数を増やし、十分な学習を確保
-            "num_files": 1           # 変更なし
-        }
+        # "op": { # transformer 複雑度を上げた
+        #     "learning_rate": 0.0001,  # 学習率を小さくして微細な調整を可能に
+        #     "batch_size": 512,       # バッチサイズを減らして勾配更新頻度を上げる
+        #     "regularizer_type": "l2",
+        #     "regularizer_value": 1.0e-07,  # 正則化を弱め、複雑なモデルを許容
+        #     "embedding_dim": 512,    # 埋め込み次元を増やし、表現力を向上
+        #     "num_heads": 8,          # Attentionヘッド数を増やして情報抽出能力を強化
+        #     "ffn_units": 1024,       # フィードフォワードネットワークのユニット数を増やす
+        #     "dropout_rate": 0.1,     # ドロップアウト率を下げて学習を促進
+        #     "epochs": 500,           # エポック数を増やし、十分な学習を確保
+        #     "num_files": 1           # 変更なし
+        # }
 
         # "op": { # gru用 optuna
         #     "learning_rate": 0.0001,
@@ -82,18 +82,18 @@ class Config:
         #     "num_files": 1, 
         #     "epochs": 300
         # },
-        # "op": { # gru用 複雑度を上げた
-        #     "learning_rate": 0.0001,
-        #     "batch_size": 32,
-        #     "regularizer_type": "l2",
-        #     "regularizer_value": 1.2526981458684701e-07, # e-6→e-7
-        #     "embedding_dim": 256, # 94→256
-        #     "gru_units": 177,
-        #     "dropout_rate": 0.2330572493663566,
-        #     "recurrent_dropout_rate": 0.1878114654182462,
-        #     "num_files": 1, 
-        #     "epochs": 300
-        # },
+        "op": { # gru用 複雑度を上げた
+            "learning_rate": 0.0001,
+            "batch_size": 32,
+            "regularizer_type": "l2",
+            "regularizer_value": 1.2526981458684701e-07, # e-6→e-7
+            "embedding_dim": 256, # 94→256
+            "gru_units": 177,
+            "dropout_rate": 0.2330572493663566,
+            "recurrent_dropout_rate": 0.1878114654182462,
+            "num_files": 1, 
+            "epochs": 300
+        },
     }
     
     @staticmethod
@@ -122,9 +122,9 @@ class Config:
 
 class DatasetHandler:
     @staticmethod
-    def generate_datasets(base_dir, num_samples):
+    def generate_datasets(base_dir, num_samples, learning_stage=None):
         print(f"Generating dataset with {num_samples} samples.")
-        optuna_data_generator.create_datasets(base_dir, 1, num_samples)
+        optuna_data_generator.create_datasets(base_dir, 1, num_samples, learning_stage=learning_stage)
 
     @staticmethod
     def load_encoded_tokens(file_path):
@@ -194,6 +194,7 @@ class ModelTrainer:
         }
         self._save_metadata(metadata, final_save_dir)
     
+
     def train(self):
         all_input_sequences = []
         all_target_tokens = []
@@ -204,7 +205,19 @@ class ModelTrainer:
 
         for epoch in range(self.training_mode["epochs"]):
             print(f"Starting epoch {epoch + 1}/{self.training_mode['epochs']}")
-            DatasetHandler.generate_datasets(self.temp_save_dir, self.num_samples)
+
+            # 学習段階の設定
+            if 1 <= epoch + 1 <= 4:
+                learning_stage = 1
+            elif 5 <= epoch + 1 <= 8:
+                learning_stage = 2
+            else:
+                learning_stage = 3
+
+            # データセットの生成
+            DatasetHandler.generate_datasets(self.temp_save_dir, self.num_samples, learning_stage)
+
+            # データの読み込み
             all_input_sequences = []
             all_target_tokens = []
             self._load_data(all_input_sequences, all_target_tokens)
@@ -248,7 +261,6 @@ class ModelTrainer:
 
             # プロットの更新と保存
             self._update_plot(full_history, complete_accuracies, partial_accuracies)
-
 
     def _update_plot(self, full_history, complete_accuracies, partial_accuracies):
         """毎エポックでプロットを更新するメソッド"""

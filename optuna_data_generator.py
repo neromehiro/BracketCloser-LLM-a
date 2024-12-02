@@ -1,3 +1,4 @@
+
 # optuna_data_generator.py
 import os
 import json
@@ -144,15 +145,73 @@ def generate_brackets(n_samples: int, max_depth: int, min_len: int, max_len: int
 def generate_test_data(num_samples: int = 1000, max_depth: int = 5, min_len: int = 5, max_len: int = 20) -> List[str]:
     return generate_brackets(num_samples, max_depth, min_len, max_len)
 
-def create_datasets(base_dir, epoch: int, num_samples: int = 1000, max_seq_length=30):
+def extract_output(data: str) -> str:
+    try:
+        output_start = data.index('output:') + len('output:')
+        output_end = data.rindex(',', output_start)
+        output = data[output_start:output_end]
+        return output
+    except ValueError:
+        return ''
+
+def count_brackets(s: str) -> int:
+    brackets = '(){}【】'
+    return sum(1 for c in s if c in brackets)
+
+def create_datasets(base_dir, epoch: int, num_samples: int = 1000, max_seq_length=30, learning_stage=None):
     filename = f"test_bracket_dataset_epoch_{epoch}.json"
-    dataset = generate_test_data(num_samples)
-    preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length)
+
+    if learning_stage is None:
+        # 従来通りの挙動
+        dataset = generate_test_data(num_samples)
+        preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length)
+    else:
+        # カリキュラム学習の実装
+        if learning_stage == 1:
+            required_counts = {1: num_samples}
+        elif learning_stage == 2:
+            half_samples = num_samples // 2
+            required_counts = {1: half_samples, '2+': num_samples - half_samples}
+        elif learning_stage == 3:
+            required_counts = {'2+': num_samples}
+        else:
+            print(f"無効な learning_stage: {learning_stage}")
+            return
+
+        counts = {k: 0 for k in required_counts}
+        dataset = []
+
+        while any(counts[k] < required_counts[k] for k in counts):
+            batch_size = max(1000, num_samples * 2)
+            batch_data = generate_test_data(num_samples=batch_size)
+
+            for data in batch_data:
+                output = extract_output(data)
+                bracket_count = count_brackets(output)
+
+                if bracket_count == 0:
+                    continue  # 出力がない場合はスキップ
+
+                if bracket_count == 1 and 1 in required_counts and counts[1] < required_counts[1]:
+                    dataset.append(data)
+                    counts[1] += 1
+                elif bracket_count >= 2 and '2+' in required_counts and counts['2+'] < required_counts['2+']:
+                    dataset.append(data)
+                    counts['2+'] += 1
+
+                # 必要なデータが集まったらループを抜ける
+                if all(counts[k] >= required_counts[k] for k in counts):
+                    break
+
+        # 必要なサンプル数に調整
+        dataset = dataset[:num_samples]
+        preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length)
 
 if __name__ == "__main__":
     base_dir = "optuna_studies/hyper_transformer_1"
-    epoch = 1  # デフォルトのepoch値、変更可能
+    epoch = 1  # デフォルトのepoch値、必要に応じて変更
     num_samples = 1000  # デフォルトで1000個のサンプルを生成
+    learning_stage = 1  # カリキュラム学習の段階を指定（1, 2, 3）、未指定の場合は従来通り
 
-    create_datasets(base_dir, epoch, num_samples)
+    create_datasets(base_dir, epoch, num_samples, learning_stage=learning_stage)
     print("データセットの生成と保存が完了しました。")
