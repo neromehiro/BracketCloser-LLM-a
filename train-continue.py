@@ -101,10 +101,19 @@ class ContinueModelTrainer(ModelTrainer):
                 continue
             previous_accuracy = current_accuracy
 
-            # エポック終了後の精度評価とプロットの更新
-            complete_accuracy, partial_accuracy = evaluate_main(self.model_path, current_epoch)
-            complete_accuracies.append(complete_accuracy)
-            partial_accuracies.append(partial_accuracy)
+            # エポック終了後の精度評価とプロットの更新（2回 / 3回 / 4回以上）
+            metrics = evaluate_main(
+                model_path=self.model_path,
+                epoch_num=current_epoch,
+                num_test_samples=300,
+                batch_size=256,
+                num_workers=1,  # 単一プロセスでモデル再ロードなし・高速化
+                evaluate_single=False,
+                eval_bracket_buckets=(2, 3, 4),
+                max_decode_steps=10,
+            )
+            complete_accuracies.append(metrics.get("bracket_1"))
+            partial_accuracies.append(metrics.get("micro"))
 
             # プロット更新
             self.update_plot(full_history, complete_accuracies, partial_accuracies, initial_metadata)

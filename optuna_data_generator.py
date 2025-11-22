@@ -6,8 +6,8 @@ import random
 from typing import List, Tuple
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# 括弧の種類とキーワード
-tokens = ["(", ")", "【", "】", "{", "}", "input", ",output", ","]
+# 語彙: BOS/SEP/EOS と括弧のみ
+tokens = ["[BOS]", "[SEP]", "[EOS]", "(", ")", "【", "】", "{", "}"]
 token2id = {token: i + 1 for i, token in enumerate(tokens)}
 id2token = {i + 1: token for i, token in enumerate(tokens)}
 BRACKETS = {'(': ')', '【': '】', '{': '}'}
@@ -20,20 +20,14 @@ def ensure_dir(directory):
     except Exception as e:
         print(f"ディレクトリ {directory} の作成に失敗しました。エラー: {e}")
 
-def tokenize_string(string: str) -> List[str]:
-    tokens = []
-    current_token = ""
-    for char in string:
-        if char in token2id:
-            if current_token:
-                tokens.append(current_token)
-                current_token = ""
-            tokens.append(char)
-        else:
-            current_token += char
-    if (current_token):
-        tokens.append(current_token)
-    return tokens
+def tokenize_io(sample: str) -> List[str]:
+    """input:xxx,output:yyy, -> [BOS] x x x [SEP] y y y [EOS]"""
+    try:
+        inp = sample.split("input:")[1].split(",output:")[0]
+        out = sample.split(",output:")[1].rstrip(",")
+    except Exception:
+        return []
+    return ["[BOS]"] + list(inp) + ["[SEP]"] + list(out) + ["[EOS]"]
 
 def preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length=30):
     original_dir = os.path.join(base_dir, "dataset/original")
@@ -51,7 +45,7 @@ def preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length=30):
     except Exception as e:
         print(f"{original_path} の保存に失敗しました。エラー: {e}")
 
-    tokenized_dataset = [tokenize_string(data) for data in dataset]
+    tokenized_dataset = [tokenize_io(data) for data in dataset]
     tokenize_path = os.path.join(tokenize_dir, filename)
     try:
         with open(tokenize_path, "w", encoding="utf-8") as f:
@@ -60,7 +54,10 @@ def preprocess_and_save_dataset(dataset, base_dir, filename, max_seq_length=30):
     except Exception as e:
         print(f"{tokenize_path} の保存に失敗しました。エラー: {e}")
 
-    preprocessed_dataset = [[token2id[token] for token in data if token in token2id] for data in tokenized_dataset]
+    preprocessed_dataset = [
+        [token2id[token] for token in data if token in token2id]
+        for data in tokenized_dataset
+    ]
     preprocessed_dataset = pad_sequences(preprocessed_dataset, maxlen=max_seq_length, padding='post', value=0).tolist()
 
     preprocessed_path = os.path.join(preprocessed_dir, filename)
@@ -116,16 +113,10 @@ def close_brackets(seq: str) -> str:
 
 def adjust_output_position(input_seq: str, output_seq: str) -> Tuple[str, str]:
     if not output_seq:
+        # 末尾を動かしたあとでも正しい閉じ順を再計算する
         pos = random.randint(1, 3)
-        input_seq, moved_output = input_seq[:-pos], input_seq[-pos:] + output_seq
-        
-        prohibited_tokens = ["(", "【", "{"]
-        for token in prohibited_tokens:
-            if token in moved_output:
-                moved_output = moved_output.replace(token, "")
-                input_seq = token + input_seq
-        
-        return input_seq, moved_output
+        input_seq = input_seq[:-pos]
+        output_seq = close_brackets(input_seq)
     return input_seq, output_seq
 
 def generate_brackets(n_samples: int, max_depth: int, min_len: int, max_len: int) -> List[str]:

@@ -4,7 +4,7 @@ import json
 import numpy as np
 from datetime import datetime
 import pytz
-from modules.data_utils import load_dataset, tokens
+from modules.data_utils import load_dataset, tokens, token2id
 from modules.model_utils import (define_gru_model, define_transformer_model,
                                  define_lstm_model, define_bert_model, define_gpt_model)
 from modules.training_utils import train_model_single, plot_training_history
@@ -57,31 +57,31 @@ class Config:
         #     "epochs": 300,
         #     "num_files": 1
         # }
-        "op": { # transformer 複雑度を上げた
-            "learning_rate": 0.0001,  # 学習率を小さくして微細な調整を可能に
-            "batch_size": 1024,       # バッチサイズを減らして勾配更新頻度を上げる
-            "regularizer_type": "l2",
-            "regularizer_value": 1.0e-07,  # 正則化を弱め、複雑なモデルを許容
-            "embedding_dim": 512,    # 埋め込み次元を増やし、表現力を向上
-            "num_heads": 8,          # Attentionヘッド数を増やして情報抽出能力を強化
-            "ffn_units": 1024,       # フィードフォワードネットワークのユニット数を増やす
-            "dropout_rate": 0.1,     # ドロップアウト率を下げて学習を促進
-            "epochs": 500,           # エポック数を増やし、十分な学習を確保
-            "num_files": 1           # 変更なし
-        }
-
-        # "op": { # gru用 optuna
-        #     "learning_rate": 0.0001,
-        #     "batch_size": 32,
+        # "op": { # transformer 複雑度を上げた
+        #     "learning_rate": 0.0001,  # 学習率を小さくして微細な調整を可能に
+        #     "batch_size": 1024,       # バッチサイズを減らして勾配更新頻度を上げる
         #     "regularizer_type": "l2",
-        #     "regularizer_value": 1.2526981458684705e-06,
-        #     "embedding_dim": 94,
-        #     "gru_units": 177,
-        #     "dropout_rate": 0.2330572493663566,
-        #     "recurrent_dropout_rate": 0.1878114654182462,
-        #     "num_files": 1, 
-        #     "epochs": 300
-        # },
+        #     "regularizer_value": 1.0e-07,  # 正則化を弱め、複雑なモデルを許容
+        #     "embedding_dim": 512,    # 埋め込み次元を増やし、表現力を向上
+        #     "num_heads": 8,          # Attentionヘッド数を増やして情報抽出能力を強化
+        #     "ffn_units": 1024,       # フィードフォワードネットワークのユニット数を増やす
+        #     "dropout_rate": 0.1,     # ドロップアウト率を下げて学習を促進
+        #     "epochs": 500,           # エポック数を増やし、十分な学習を確保
+        #     "num_files": 1           # 変更なし
+        # }
+
+        "op": { # gru用 optuna
+            "learning_rate": 0.0001,
+            "batch_size": 32,
+            "regularizer_type": "l2",
+            "regularizer_value": 1.2526981458684705e-06,
+            "embedding_dim": 94,
+            "gru_units": 177,
+            "dropout_rate": 0.2330572493663566,
+            "recurrent_dropout_rate": 0.1878114654182462,
+            "num_files": 1, 
+            "epochs": 300
+        },
         # "op": { # gru用 複雑度を上げた
         #     "learning_rate": 0.0001,
         #     "batch_size": 32,
@@ -133,19 +133,16 @@ class DatasetHandler:
 
     @staticmethod
     def prepare_sequences(encoded_tokens, seq_length):
-        input_sequences = []
-        target_tokens = []
-
-        for i in range(1, len(encoded_tokens)):
-            input_seq = encoded_tokens[:i]
-            target_seq = encoded_tokens[i]
-            input_sequences.append([int(token) for token in input_seq])
-            target_tokens.append(int(target_seq))
-
-        input_sequences = pad_sequences(input_sequences, maxlen=seq_length, padding='post', value=0)
-        target_tokens = pad_sequences([target_tokens], maxlen=len(input_sequences), padding='post', value=0)[0]
-
-        return input_sequences, target_tokens
+        # 自己回帰LM: 入力=全系列、ターゲット=1トークン右シフト
+        trimmed = [int(t) for t in encoded_tokens if t != 0]
+        if len(trimmed) < 2:
+            return np.empty((0, seq_length)), np.empty((0, seq_length)), np.empty((0, seq_length))
+        decoder_input = trimmed[:-1]
+        targets = trimmed[1:]
+        input_sequences = pad_sequences([decoder_input], maxlen=seq_length, padding='post', value=0)[0]
+        target_tokens = pad_sequences([targets], maxlen=seq_length, padding='post', value=0)[0]
+        sample_weights = (target_tokens != 0).astype(np.float32)  # PADは損失無視
+        return np.array([input_sequences]), np.array([target_tokens]), np.array([sample_weights], dtype=np.float32)
 
 
 class ModelTrainer:
@@ -162,6 +159,10 @@ class ModelTrainer:
         self.history = []
         self.training_info_path = os.path.join(self.temp_save_dir, "training_info.json")
         self.plot_data_path = os.path.join(self.temp_save_dir, "plot_data.json")
+        self.bracket2_accuracies = []
+        self.bracket3_accuracies = []
+        self.bracket4plus_accuracies = []
+        self.micro_accuracies = []
     
 
     def _initialize_model(self):
@@ -198,6 +199,7 @@ class ModelTrainer:
     def train(self):
         all_input_sequences = []
         all_target_tokens = []
+        all_sample_weights = []
         complete_accuracies = []
         partial_accuracies = []
         previous_accuracy = None
@@ -220,14 +222,16 @@ class ModelTrainer:
             # データの読み込み
             all_input_sequences = []
             all_target_tokens = []
-            self._load_data(all_input_sequences, all_target_tokens)
+            all_sample_weights = []
+            self._load_data(all_input_sequences, all_target_tokens, all_sample_weights)
 
-            if not all_input_sequences or not all_target_tokens:
+            if not all_input_sequences or not all_target_tokens or not all_sample_weights:
                 print("No data for training.")
                 return
 
             all_input_sequences = np.concatenate(all_input_sequences, axis=0)
             all_target_tokens = np.concatenate(all_target_tokens, axis=0)
+            all_sample_weights = np.concatenate(all_sample_weights, axis=0)
 
             # モデルの学習
             history, _ = train_model_single(
@@ -235,7 +239,8 @@ class ModelTrainer:
                 batch_size=self.training_mode["batch_size"], model_path=self.model_path,
                 num_files=self.training_mode["num_files"],
                 learning_rate=self.training_mode["learning_rate"], architecture=self.architecture,
-                model_architecture_func=Config.MODEL_ARCHITECTURES[self.architecture]
+                model_architecture_func=Config.MODEL_ARCHITECTURES[self.architecture],
+                sample_weights=all_sample_weights
             )
 
             # accuracyの評価と再試行の判定
@@ -245,10 +250,25 @@ class ModelTrainer:
                 continue
             previous_accuracy = current_accuracy
 
-            # エポック終了後に精度の評価
-            complete_accuracy, partial_accuracy = evaluate_main(self.model_path, epoch + 1)
+            # エポック終了後に精度の評価（2回 / 3回 / 4回以上を個別集計、バッチ＆並列で高速化）
+            metrics = evaluate_main(
+                model_path=self.model_path,
+                epoch_num=epoch + 1,
+                num_test_samples=300,
+                batch_size=256,
+                num_workers=1,  # 単一プロセスでモデル再ロードなし・高速化
+                evaluate_single=False,
+                eval_bracket_buckets=(2, 3, 4),
+                max_decode_steps=10,
+            )
+            complete_accuracy = metrics.get("bracket_1")  # evaluate_single=False なので実質 None/0
+            partial_accuracy = metrics.get("micro")
             complete_accuracies.append(complete_accuracy)
             partial_accuracies.append(partial_accuracy)
+            self.bracket2_accuracies.append(metrics.get("bracket_2"))
+            self.bracket3_accuracies.append(metrics.get("bracket_3"))
+            self.bracket4plus_accuracies.append(metrics.get("bracket_4plus"))
+            self.micro_accuracies.append(metrics.get("micro"))
 
             # 学習履歴を更新
             self._update_full_history(full_history, history)
@@ -270,13 +290,25 @@ class ModelTrainer:
             'accuracy': [epoch_data['accuracy'] for epoch_data in full_history],
             'val_accuracy': [epoch_data['val_accuracy'] for epoch_data in full_history],
             'complete_accuracy': complete_accuracies,
-            'partial_accuracy': partial_accuracies
+            'partial_accuracy': partial_accuracies,
+            'bracket_2': self.bracket2_accuracies,
+            'bracket_3': self.bracket3_accuracies,
+            'bracket_4plus': self.bracket4plus_accuracies,
+            'micro': self.micro_accuracies
         }
 
         avg_complete_accuracy = (sum(acc for acc in complete_accuracies if acc is not None) 
                                 / len(complete_accuracies)) if complete_accuracies else 0
         avg_partial_accuracy = (sum(acc for acc in partial_accuracies if acc is not None) 
                                 / len(partial_accuracies)) if partial_accuracies else 0
+        avg_bracket_2 = (sum(acc for acc in self.bracket2_accuracies if acc is not None)
+                         / len(self.bracket2_accuracies)) if self.bracket2_accuracies else 0
+        avg_bracket_3 = (sum(acc for acc in self.bracket3_accuracies if acc is not None)
+                         / len(self.bracket3_accuracies)) if self.bracket3_accuracies else 0
+        avg_bracket_4plus = (sum(acc for acc in self.bracket4plus_accuracies if acc is not None)
+                             / len(self.bracket4plus_accuracies)) if self.bracket4plus_accuracies else 0
+        avg_micro = (sum(acc for acc in self.micro_accuracies if acc is not None)
+                     / len(self.micro_accuracies)) if self.micro_accuracies else 0
         dataset_size = len(plot_data['loss'])  # データサイズの推定
 
         plot_training_history(
@@ -289,7 +321,17 @@ class ModelTrainer:
             dataset_size=dataset_size,
             avg_complete_accuracy=avg_complete_accuracy,
             avg_partial_accuracy=avg_partial_accuracy,
-            initial_metadata={}
+            initial_metadata={},
+            bracket_metrics={
+                "bracket_2": self.bracket2_accuracies,
+                "bracket_3": self.bracket3_accuracies,
+                "bracket_4plus": self.bracket4plus_accuracies,
+                "micro": self.micro_accuracies,
+                "avg_bracket_2": avg_bracket_2,
+                "avg_bracket_3": avg_bracket_3,
+                "avg_bracket_4plus": avg_bracket_4plus,
+                "avg_micro": avg_micro,
+            }
         )
 
 
@@ -379,7 +421,11 @@ class ModelTrainer:
             'accuracy': [epoch_data['accuracy'] for epoch_data in full_history],
             'val_accuracy': [epoch_data['val_accuracy'] for epoch_data in full_history],
             'complete_accuracy': complete_accuracies,
-            'partial_accuracy': partial_accuracies
+            'partial_accuracy': partial_accuracies,
+            'bracket_2': self.bracket2_accuracies,
+            'bracket_3': self.bracket3_accuracies,
+            'bracket_4plus': self.bracket4plus_accuracies,
+            'micro': self.micro_accuracies
         }
         with open(self.plot_data_path, "w") as plot_file:
             json.dump(plot_data, plot_file, indent=4)
@@ -394,16 +440,17 @@ class ModelTrainer:
             }
             full_history.append(epoch_data)
             
-    def _load_data(self, all_input_sequences, all_target_tokens):
+    def _load_data(self, all_input_sequences, all_target_tokens, all_sample_weights):
         dataset_path = os.path.join(self.temp_save_dir, "dataset", "preprocessed")
         for dirpath, _, filenames in os.walk(dataset_path):
             for file in filenames[:self.training_mode["num_files"]]:
                 file_path = os.path.join(dirpath, file)
                 encoded_tokens_list = DatasetHandler.load_encoded_tokens(file_path)
                 for encoded_tokens in encoded_tokens_list:
-                    input_sequences, target_tokens = DatasetHandler.prepare_sequences(encoded_tokens, self.max_seq_length)
+                    input_sequences, target_tokens, sample_weights = DatasetHandler.prepare_sequences(encoded_tokens, self.max_seq_length)
                     all_input_sequences.append(input_sequences)
                     all_target_tokens.append(target_tokens)
+                    all_sample_weights.append(sample_weights)
 
     def _evaluate_accuracy(self, history, previous_accuracy):
         current_accuracy = history.get("accuracy")[0] if 'accuracy' in history and len(history["accuracy"]) > 0 else None

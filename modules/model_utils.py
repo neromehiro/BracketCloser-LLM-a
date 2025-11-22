@@ -23,8 +23,8 @@ def define_gru_model(seq_length, output_dim, learning_rate, embedding_dim=64, gr
 
     inputs = layers.Input(shape=(seq_length,))
     x = layers.Embedding(input_dim=output_dim, output_dim=embedding_dim, mask_zero=True)(inputs)
-    x = layers.GRU(gru_units, dropout=dropout_rate, recurrent_dropout=recurrent_dropout_rate, kernel_regularizer=regularizer)(x)
-    outputs = layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer)(x)
+    x = layers.GRU(gru_units, return_sequences=True, dropout=dropout_rate, recurrent_dropout=recurrent_dropout_rate, kernel_regularizer=regularizer)(x)
+    outputs = layers.TimeDistributed(layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer))(x)
 
     model = models.Model(inputs, outputs)
     model.compile(
@@ -48,8 +48,8 @@ def define_lstm_model(seq_length, output_dim, learning_rate, embedding_dim=64, l
     x = layers.Embedding(input_dim=output_dim, output_dim=embedding_dim, mask_zero=True)(inputs)
     for _ in range(num_layers - 1):
         x = layers.LSTM(lstm_units, return_sequences=True, dropout=dropout_rate, recurrent_dropout=recurrent_dropout_rate, kernel_regularizer=regularizer)(x)
-    x = layers.LSTM(lstm_units, dropout=dropout_rate, recurrent_dropout=recurrent_dropout_rate, kernel_regularizer=regularizer)(x)
-    outputs = layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer)(x)
+    x = layers.LSTM(lstm_units, return_sequences=True, dropout=dropout_rate, recurrent_dropout=recurrent_dropout_rate, kernel_regularizer=regularizer)(x)
+    outputs = layers.TimeDistributed(layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer))(x)
 
     model = models.Model(inputs, outputs)
     model.compile(
@@ -91,8 +91,7 @@ def define_bert_model(seq_length, output_dim, learning_rate, embedding_dim=64, n
         ffn_output = layers.Dense(embedding_dim, kernel_regularizer=regularizer)(ffn)
         ffn_output = layers.Dropout(dropout_rate)(ffn_output)
         x = layers.LayerNormalization(epsilon=1e-6)(ffn_output + attention_output)
-    x = layers.GlobalAveragePooling1D()(x)
-    outputs = layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer)(x)
+    outputs = layers.TimeDistributed(layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer))(x)
 
     model = models.Model(inputs=input_list, outputs=outputs)
     model.compile(
@@ -123,8 +122,7 @@ def define_transformer_model(seq_length, output_dim, learning_rate, embedding_di
     ffn_output = layers.Dense(embedding_dim, kernel_regularizer=regularizer)(ffn)
     ffn_output = layers.Dropout(dropout_rate)(ffn_output)
     ffn_output = layers.LayerNormalization(epsilon=1e-6)(ffn_output + attention_output)
-    x = layers.GlobalAveragePooling1D()(ffn_output)
-    outputs = layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer)(x)
+    outputs = layers.TimeDistributed(layers.Dense(output_dim, activation="softmax", kernel_regularizer=regularizer))(ffn_output)
 
     model = models.Model(inputs=[inputs, attention_mask], outputs=outputs)
     model.compile(
@@ -163,8 +161,7 @@ def define_gpt_model(seq_length, vocab_size, learning_rate, embedding_dim=64, nu
     add_norm_layer2 = tf.keras.layers.Add()([norm_layer, ffn_output])
     norm_layer2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)(add_norm_layer2)
     
-    gap_layer = tf.keras.layers.GlobalAveragePooling1D()(norm_layer2)
-    outputs = tf.keras.layers.Dense(vocab_size, activation="softmax", kernel_regularizer=regularizer)(gap_layer)
+    outputs = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(vocab_size, activation="softmax", kernel_regularizer=regularizer))(norm_layer2)
 
     model = tf.keras.Model(inputs=[inputs, attention_mask], outputs=outputs)
 

@@ -73,7 +73,7 @@ class TrainingHistory(tf.keras.callbacks.Callback):
             print(f"Failed to load metadata: {e}")
 
 # TRAINING_MODES に含まれる変数を渡すための変更
-def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, **kwargs):
+def train_model_single(model, input_sequences, target_tokens, epochs, batch_size, model_path, num_files, learning_rate, architecture, model_architecture_func, sample_weights=None, **kwargs):
     # 他のパラメータを kwargs から取り出す
     embedding_dim = kwargs.get('embedding_dim', 64)
     gru_units = kwargs.get('gru_units', 64)
@@ -99,7 +99,10 @@ def train_model_single(model, input_sequences, target_tokens, epochs, batch_size
         validation_split = 0.2
         num_validation_samples = int(validation_split * len(input_sequences))
 
-        sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
+        if sample_weights is None:
+            sample_weights = np.where(target_tokens != 0, 1.0, 0.0)
+        else:
+            sample_weights = sample_weights.astype(np.float32, copy=False)
 
         # 'transformer', 'gpt', 'bert' などのアーキテクチャに対してのみ attention_mask を作成
         if 'transformer' in architecture or 'gpt' in architecture or 'bert' in architecture:
@@ -431,7 +434,11 @@ def save_final_model_metadata(model_path, history, model_architecture_func, best
 
 
 
-def plot_training_history(history, save_path, epochs, batch_size, learning_rate, num_files, dataset_size, avg_complete_accuracy, avg_partial_accuracy, initial_metadata):
+def plot_training_history(history, save_path, epochs=None, batch_size=None, learning_rate=None, num_files=None,
+                          dataset_size=None, avg_complete_accuracy=None, avg_partial_accuracy=None, initial_metadata=None,
+                          bracket_metrics=None):
+    initial_metadata = initial_metadata or {}
+    bracket_metrics = bracket_metrics or {}
     if isinstance(history, dict):
         losses = history.get('loss', [])
         val_losses = history.get('val_loss', [])
@@ -449,7 +456,7 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
 
     epochs_range = range(1, len(losses) + 1)
 
-    plt.figure(figsize=(18, 6))  # プロットのサイズを変更
+    plt.figure(figsize=(20, 6))  # プロットのサイズを変更
 
     plt.subplot(1, 3, 1)
     plt.plot(epochs_range, losses, label='Training Loss')
@@ -478,29 +485,49 @@ def plot_training_history(history, save_path, epochs, batch_size, learning_rate,
                 horizontalalignment='right', verticalalignment='bottom')
 
     plt.subplot(1, 3, 3)
-    if complete_accuracies:  # complete_accuraciesが空でない場合のみプロット
-        plt.plot(epochs_range, complete_accuracies, label='1 question accuracy')
-        plt.xlabel('Epochs')
-        plt.ylabel('1 question accuracy')
-        plt.title('1 question accuracy')
-        plt.legend()
+    bracket_2 = bracket_metrics.get("bracket_2", [])
+    bracket_3 = bracket_metrics.get("bracket_3", [])
+    bracket_4plus = bracket_metrics.get("bracket_4plus", [])
+    micro = bracket_metrics.get("micro", [])
 
-    if partial_accuracies:  # partial_accuraciesが空でない場合のみプロット
-        plt.plot(epochs_range, partial_accuracies, label='2+ questions accuracy')
-        plt.xlabel('Epochs')
-        plt.ylabel('2+ questions accuracy')
-        plt.title('2+ questions accuracy')
-        plt.legend()
+    if bracket_2:
+        plt.plot(range(1, len(bracket_2) + 1), bracket_2, label='2x brackets')
+    if bracket_3:
+        plt.plot(range(1, len(bracket_3) + 1), bracket_3, label='3x brackets')
+    if bracket_4plus:
+        plt.plot(range(1, len(bracket_4plus) + 1), bracket_4plus, label='4+ brackets')
+    if micro:
+        plt.plot(range(1, len(micro) + 1), micro, label='Micro (2+ agg)', linestyle='--')
+
+    if complete_accuracies:
+        plt.plot(epochs_range, complete_accuracies, label='1 question accuracy', linestyle=':')
+    if partial_accuracies:
+        plt.plot(epochs_range, partial_accuracies, label='2+ questions accuracy', linestyle=':')
 
     # モデルの平均精度をプロット
-    plt.axhline(y=avg_complete_accuracy, color='r', linestyle='--', label='Average 1 question accuracy')
-    plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Average 2+ questions accuracy')
+    if avg_complete_accuracy is not None:
+        plt.axhline(y=avg_complete_accuracy, color='r', linestyle='--', label='Avg 1 question')
+    if avg_partial_accuracy is not None:
+        plt.axhline(y=avg_partial_accuracy, color='b', linestyle='--', label='Avg 2+ questions')
+    if bracket_metrics.get("avg_bracket_2") is not None:
+        plt.axhline(y=bracket_metrics.get("avg_bracket_2"), color='g', linestyle='--', label='Avg 2x')
+    if bracket_metrics.get("avg_bracket_3") is not None:
+        plt.axhline(y=bracket_metrics.get("avg_bracket_3"), color='orange', linestyle='--', label='Avg 3x')
+    if bracket_metrics.get("avg_bracket_4plus") is not None:
+        plt.axhline(y=bracket_metrics.get("avg_bracket_4plus"), color='purple', linestyle='--', label='Avg 4+')
+    if bracket_metrics.get("avg_micro") is not None:
+        plt.axhline(y=bracket_metrics.get("avg_micro"), color='gray', linestyle='--', label='Avg Micro')
+
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.title('Bracket Accuracy (2x / 3x / 4+)')
     plt.legend()
 
 
 
     plt.tight_layout()
-    plt.suptitle(f'Epochs: {epochs}, Batch Size: {batch_size}, Learning Rate: {learning_rate}, Files: {num_files}, Dataset Size: {dataset_size}', y=1.05)
+    if epochs or batch_size or learning_rate or num_files or dataset_size:
+        plt.suptitle(f'Epochs: {epochs}, Batch Size: {batch_size}, Learning Rate: {learning_rate}, Files: {num_files}, Dataset Size: {dataset_size}', y=1.05)
     plt.savefig(save_path)
     plt.close()
 
